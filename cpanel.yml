@@ -1,0 +1,4 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/ikonicinterior/accounts.ikonicinterior.com
+    - /bin/rsync -av --exclude='.git' ./ $DEPLOYPATH
