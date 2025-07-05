@@ -82,8 +82,8 @@ class ProposalController extends Controller
             $proposal_number = \Auth::user()->proposalNumberFormat($this->proposalNumber());
             $customers       = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             $customers->prepend('Select Customer', '');
-            // $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
-            // $category->prepend('Select Category', '');
+            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
+            $category->prepend('Select Category', '');
             $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             $product_services->prepend('--', '');
 
