@@ -1,8 +1,8 @@
 <?php
 // === Config ===
-$repoPath = '/home/accounts.ikonicinterior.com/';  
+$repoPath = '/home/ikonicinterior/accounts.ikonicinterior.com/';  
 $branch = 'main';
-$logFile = '/home/accounts.ikonicinterior.com/deploy.log';       
+$logFile = '/home/ikonicinterior/accounts.ikonicinterior.com/deploy.log';       
 
 // === Pull and Deploy ===
 $cmd = "cd $repoPath && git pull origin $branch && /bin/rsync -av  ./ $repoPath 2>&1";
