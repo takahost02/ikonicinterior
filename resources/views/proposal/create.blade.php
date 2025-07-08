@@ -429,15 +429,13 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        {{ Form::label('category_id', __('Category'), ['class' => 'form-label']) }}<x-required></x-required>
-                                        {{ Form::hidden('category_id', 1) }}
-                                        <div class="form-control-plaintext">Default Category (ID: 1)</div>
+                                        {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
+                                        {{ Form::select('category_id', $category,null, array('class' => 'form-control select','required'=>'required')) }}
                                         <div class="text-xs mt-1">
                                             {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         {{ Form::label('proposal_number', __('Proposal Number'),['class'=>'form-label']) }}
@@ -596,5 +594,4 @@
         {{ Form::close() }}
     </div>
 @endsection
-
 
