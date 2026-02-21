@@ -15,17 +15,27 @@ class CustomPageController extends Controller
      */
     public function index()
     {
-        $settings = LandingPageSetting::settings();
-        $pages = json_decode($settings['menubar_page'], true);
-        return view('landingpage::landingpage.menubar.index', compact('pages', 'settings'));
+        if(\Auth::user()->type == 'super admin')
+        {
+            $settings = LandingPageSetting::landingPageSetting();
+            $pages = json_decode($settings['menubar_page'], true);
+            return view('landingpage::landingpage.menubar.index', compact('pages', 'settings'));
+        }
+        else{
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+
     }
 
     /**
      * Show the form for creating a new resource.
      * @return Renderable
      */
-    public function create()
+    public function create(Request $request)
     {
+
+
+
         return view('landingpage::landingpage.menubar.create');
     }
 
@@ -37,7 +47,6 @@ class CustomPageController extends Controller
     public function store(Request $request)
     {
 
-
         $settings = LandingPageSetting::settings();
         $data = json_decode($settings['menubar_page'], true);
         $page_slug = str_replace(' ', '_', strtolower($request->menubar_page_name));
@@ -45,6 +54,16 @@ class CustomPageController extends Controller
         $datas['menubar_page_name'] = $request->menubar_page_name;
         $datas['menubar_page_contant'] = $request->menubar_page_contant;
         $datas['page_slug'] = $page_slug;
+
+        $datas['template_name'] = $request->template_name;
+
+        if (isset($request->template_name) && $request->template_name == 'page_url') {
+            $datas['page_url'] = $request->page_url;
+            $datas['menubar_page_contant'] = '';
+        } else {
+            $datas['page_url'] = '';
+            $datas['menubar_page_contant'] = $request->menubar_page_contant;
+        }
 
         if($request->header){
             $datas['header'] = 'on';
@@ -58,26 +77,17 @@ class CustomPageController extends Controller
             $datas['footer'] = 'off';
         }
 
-        $datas['template_name'] = $request->template_name;
-
-        if (isset($request->template_name) && $request->template_name == 'page_url') {
-            $datas['page_url'] = $request->page_url;
-            $datas['menubar_page_contant'] = '';
-        } else {
-            $datas['page_url'] = '';
-            $datas['menubar_page_contant'] = $request->menubar_page_contant;
-        }   
         if($request->login){
             $datas['login'] = 'on';
         }else{
             $datas['login'] = 'off';
-        } 
+        }
 
         $data[] = $datas;
         $data = json_encode($data);
         LandingPageSetting::updateOrCreate(['name' =>  'menubar_page'],['value' => $data]);
 
-        return redirect()->back()->with(['success'=> 'Page add successfully']);
+        return redirect()->back()->with(['success'=> 'page added successfully']);
     }
 
     /**
@@ -95,12 +105,15 @@ class CustomPageController extends Controller
      * @param int $id
      * @return Renderable
      */
-    public function edit($key)
+    public function edit($key ,Request $request)
     {
 
         $settings = LandingPageSetting::settings();
         $pages = json_decode($settings['menubar_page'], true);
         $page = $pages[$key];
+
+
+
         return view('landingpage::landingpage.menubar.edit', compact('page', 'key'));
     }
 
@@ -120,20 +133,6 @@ class CustomPageController extends Controller
 
         $datas['page_slug'] = $page_slug;
 
-
-
-        if($request->header){
-            $datas['header'] = 'on';
-        }else{
-            $datas['header'] = 'off';
-        }
-
-        if($request->footer){
-            $datas['footer'] = 'on';
-        }else{
-            $datas['footer'] = 'off';
-        }
-
         $datas['template_name'] = $request->template_name;
 
         if (isset($request->template_name) && $request->template_name == 'page_url') {
@@ -148,14 +147,27 @@ class CustomPageController extends Controller
             $datas['login'] = 'on';
         } else {
             $datas['login'] = 'off';
-        }  
+        }
+
+
+        if($request->header){
+            $datas['header'] = 'on';
+        }else{
+            $datas['header'] = 'off';
+        }
+
+        if($request->footer){
+            $datas['footer'] = 'on';
+        }else{
+            $datas['footer'] = 'off';
+        }
 
         $data[$key] = $datas;
         $data = json_encode($data);
 
 
         LandingPageSetting::updateOrCreate(['name' =>  'menubar_page'],['value' => $data]);
-        return redirect()->back()->with(['success'=> 'Page Updated successfully']);
+        return redirect()->back()->with(['success'=> 'page updated successfully']);
     }
 
     /**
@@ -194,7 +206,7 @@ class CustomPageController extends Controller
             LandingPageSetting::updateOrCreate(['name' =>  $key],['value' => $value]);
         }
 
-        return redirect()->back()->with(['success'=> 'Settings updated successfully']);
+        return redirect()->back()->with(['success'=> 'settings updated successfully']);
     }
 
 
@@ -206,7 +218,6 @@ class CustomPageController extends Controller
 
         foreach ($pages as $key => $page) {
             if($page['page_slug'] == $slug){
-                // dd($page);
                 return view('landingpage::layouts.custompage', compact('page', 'settings'));
             }
         }

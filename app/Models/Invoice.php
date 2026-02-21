@@ -40,61 +40,73 @@ class Invoice extends Model
     {
         return $this->hasMany('App\Models\InvoicePayment', 'invoice_id', 'id');
     }
-
-    public function bankpayment()
+    public function bankPayments()
     {
-        return $this->hasMany('App\Models\BankTransfer', 'invoice_id', 'id')->where('type','=','invoice')->where('status','!=','Approved');
+        return $this->hasMany('App\Models\InvoiceBankTransfer', 'invoice_id', 'id')->where('status','!=','Approved');
     }
-
     public function customer()
     {
         return $this->hasOne('App\Models\Customer', 'id', 'customer_id');
     }
 
-    public function getSubTotal()
-    {
-        $subTotal = 0;
-        foreach ($this->items as $product) {
-            $subTotal += ($product->price * $product->quantity);
-        }
-
-        return $subTotal;
-    }
-
-    public function getTotalTax()
-    {
-        $totalTax = 0;
-        foreach($this->items as $product)
-        {
-            $taxes = Utility::totalTaxRate($product->tax);
 
 
-            $totalTax += ($taxes / 100) * ($product->price * $product->quantity - $product->discount) ;
-        }
 
-        return $totalTax;
-    }
 
-    public function getTotalDiscount()
-    {
-        $totalDiscount = 0;
-        foreach ($this->items as $product) {
-            $totalDiscount += $product->discount;
-        }
-
-        return $totalDiscount;
-    }
 
     public function getTotal()
     {
         return ($this->getSubTotal() -$this->getTotalDiscount()) + $this->getTotalTax();
     }
 
+    public function getSubTotal()
+    {
+        $subTotal = 0;
+        foreach($this->items as $product)
+        {
+
+            $subTotal += ($product->price * $product->quantity);
+        }
+
+        return $subTotal;
+    }
+
+
+
+    public function getTotalTax()
+    {
+        $taxData = Utility::getTaxData();
+        $totalTax = 0;
+        foreach($this->items as $product)
+        {
+            $taxArr = explode(',', $product->tax);
+            $taxes = 0;
+            foreach ($taxArr as $tax) {
+                $taxes += !empty($taxData[$tax]['rate']) ? $taxData[$tax]['rate'] : 0;
+            }
+
+            $discount = isset($product->discount) ? $product->discount : 0;
+            $totalTax += ($taxes / 100) * (($product->price - $discount) * $product->quantity);
+        }
+
+        return $totalTax;
+    }
+    public function getTotalDiscount()
+    {
+        $totalDiscount = 0;
+        foreach($this->items as $product)
+        {
+            $totalDiscount += $product->discount;
+        }
+
+        return $totalDiscount;
+    }
 
     public function getDue()
     {
         $due = 0;
-        foreach ($this->payments as $payment) {
+        foreach($this->payments as $payment)
+        {
             $due += $payment->amount;
         }
 
@@ -103,7 +115,7 @@ class Invoice extends Model
 
     public static function change_status($invoice_id, $status)
     {
-        
+
         $invoice         = Invoice::find($invoice_id);
         $invoice->status = $status;
         $invoice->update();
@@ -122,43 +134,26 @@ class Invoice extends Model
 
     public function invoiceTotalCreditNote()
     {
-        return $this->hasMany('App\Models\CreditNote', 'invoice', 'id')->sum('amount');
+        return $this->hasMany(CreditNote::class, 'invoice', 'id')->sum('amount');
+    }
+
+    public function invoiceTotalCustomerCreditNote()
+    {
+        return $this->hasMany(CustomerCreditNotes::class, 'invoice', 'id')->sum('amount');
     }
 
     public function lastPayments()
     {
-        return $this->hasOne('App\Models\InvoicePayment', 'id', 'invoice_id');
+        return $this->hasOne('App\Models\InvoicePayment', 'invoice_id', 'id')->latest('created_at');
     }
 
     public function taxes()
     {
         return $this->hasOne('App\Models\Tax', 'id', 'tax');
     }
-    public static function customers($customer)
+
+    public function products()
     {
-
-        $categoryArr  = explode(',', $customer);
-        $unitRate = 0;
-        foreach ($categoryArr as $customer) {
-            if ($customer == 0) {
-                $unitRate = '';
-            } else {
-                $customer        = Customer::find($customer);
-                $unitRate        = $customer->name ?? '-';
-            }
-        }
-
-        return $unitRate;
-    }
-    public static function Invoicecategory($category)
-    {
-        $categoryArr  = explode(',', $category);
-        $categoryRate = 0;
-        foreach ($categoryArr as $category) {
-            $category    = ProductServiceCategory::find($category);
-            $categoryRate        = $category->name ?? '-';
-        }
-
-        return $categoryRate;
+        return $this->hasMany(InvoiceProduct::class);
     }
 }

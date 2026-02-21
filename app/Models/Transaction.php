@@ -20,7 +20,7 @@ class Transaction extends Model
 
     public function bankAccount()
     {
-        return $this->hasOne('App\Models\BankAccount', 'id', 'account')->first();
+        return $this->hasOne('App\Models\BankAccount', 'id', 'account');
     }
 
 
@@ -68,6 +68,8 @@ class Transaction extends Model
         return $this->hasOne('App\Models\BillPayment', 'id', 'payment_id');
     }
 
+
+    //for export in transaction report
     public static function accounts($account)
     {
         $categoryArr  = explode(',', $account);
@@ -77,10 +79,20 @@ class Transaction extends Model
                 $unitRate = '';
             } else {
                 $account        = BankAccount::find($account);
-                $unitRate       = ($account->bank_name.'  '.$account->holder_name);
+                if($account != null)
+                {
+                    $unitRate       = ($account->bank_name.'  '.$account->holder_name);
+                }
+                else
+                {
+                     $unitRate       = '';
+                }
+
             }
         }
 
         return $unitRate;
     }
+
+
 }

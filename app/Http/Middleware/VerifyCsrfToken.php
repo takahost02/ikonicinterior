@@ -12,15 +12,15 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        '/customer/invoice/paytm*/',
-        '/customer/invoice/flaterwave*/',
-        '/invoice/razorpay*/',
-        '/customer/retainer/paytm*/',
-        'iyzipay/callback/*',
-        'invoice/iyzipay/callback/*',
-        'retainer/iyzipay/callback/*',
-        'paytab-success/*',
-        'retainer-paytab-success/*',
-        '/aamarpay*'
+            'plan/paytm/*',
+            '/customer/paytm/*',
+            'plan-pay-with-paymentwall/*',
+            'invoice-pay-with-paymentwall/*',
+            'iyzipay/callback/*',
+            'paytab-success/*',
+            '/aamarpay*',
+            'plan-easebuzz-payment-notify*',
+            'invoice-easebuzz-payment-notify*',
+
     ];
 }

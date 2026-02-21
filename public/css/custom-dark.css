@@ -56,45 +56,17 @@
     margin-bottom: 15px;
 }
 
-/* custom dark-mode && rtl css */
-
-[dir="rtl"] .dash-sidebar {
-    left: auto !important;
+body.custom-color {
+    background: linear-gradient(141.55deg, #22242C 3.46%, #22242C 99.86%) !important;
 }
 
-[dir="rtl"] .dash-header {
-    left: 0;
-    right: 280px;
-}
-[dir="rtl"] .dash-header:not(.transprent-bg) .header-wrapper {
-    padding: 0 0 0 30px;
+#calender_type
+{
+    float: left;
+    width : 150px;
 }
 
-[dir="rtl"] .dash-header:not(.transprent-bg):not(.dash-mob-header)~.dash-container {
-    margin-left: 0px;
+.apexcharts-yaxis-texts-g
+{
+    transform: translate(-15px, 0px) !important;
 }
-
-[dir="rtl"] .me-auto.dash-mob-drp {
-    margin-right: 10px !important;
-}
-
-[dir="rtl"] .me-auto {
-    margin-left: 10px !important;
-}
-
-
-[dir="rtl"] .header-wrapper .ms-auto {
-    margin-left: 0 !important;
-}
-
-[dir="rtl"] .dash-header {
-    left: 0 !important;
-    right: 280px !important;
-}
-
-[dir="rtl"] .list-group-flush>.list-group-item .float-end {
-    float: left !important;
-}
-
-
-/*  custom End dark-mode && rtl css  */

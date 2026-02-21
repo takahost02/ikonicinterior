@@ -8,27 +8,26 @@
 @endsection
 
 @section('action-btn')
-    @can('create budget planner')
-        <div class="d-flex">
-                <a href="{{ route('budget.create',0) }}" data-bs-toggle="tooltip" title="{{__('Create')}}" class="btn btn-sm btn-primary">
-                    <i class="ti ti-plus"></i>
-                </a>
-            </div>
+    @can('create budget plan')
+        <div class="float-end">
+            <a href="{{ route('budget.create',0) }}" data-bs-toggle="tooltip" title="{{__('Create')}}" class="btn btn-sm btn-primary">
+                <i class="ti ti-plus"></i>
+            </a>
+        </div>
     @endcan
 @endsection
 
 @section('content')
     <div class="row">
-    <div class="col-sm-12">
+        <div class="col-sm-12">
             <div class="card">
-            <div class="card-body table-border-style">
+                <div class="card-body table-border-style">
                     <div class="table-responsive">
                         <table class="table datatable">
                             <thead>
                             <tr>
                                 <th> {{__('Name')}}</th>
                                 <th> {{__('From')}}</th>
-{{--                                <th> {{__('To')}}</th>--}}
                                 <th> {{__('Budget Period')}}</th>
                                 <th width="10%"> {{__('Action')}}</th>
                             </tr>
@@ -39,27 +38,25 @@
                                 <tr>
                                     <td class="font-style">{{ $budget->name }}</td>
                                     <td class="font-style">{{ $budget->from }}</td>
-{{--                                    <td class="font-style">{{ $budget->to }}</td>--}}
                                     <td class="font-style">{{ __(\App\Models\Budget::$period[$budget->period]) }}</td>
                                     <td class="Action">
                                         <span>
-                                            @can('view budget planner')
-                                            <div class="action-btn me-2">
-                                                    <a href="{{ route('budget.show',\Crypt::encrypt($budget->id)) }}" class="mx-3 btn btn-sm align-items-center bg-warning " data-bs-toggle="tooltip" title="{{__('View')}}" data-original-title="{{__('Detail')}}">
-                                                        <i class="ti ti-eye text-white"></i>
-                                                    </a>
-                                            </div>
-                                            @endcan
-                                            @can('edit budget planner')
-                                            <div class="action-btn me-2">
-                                                 <a href="{{ route('budget.edit',Crypt::encrypt($budget->id)) }}" class="mx-3 btn btn-sm align-items-center bg-info " data-bs-toggle="tooltip" title="{{__('Edit')}}" data-original-title="{{__('Edit')}}">
+                                            @can('edit budget plan')
+                                                <div class="action-btn me-2">
+                                                 <a href="{{ route('budget.edit',Crypt::encrypt($budget->id)) }}" class="mx-3 btn btn-sm align-items-center bg-info" data-bs-toggle="tooltip" title="{{__('Edit')}}" data-original-title="{{__('Edit')}}">
                                                     <i class="ti ti-pencil text-white"></i>
                                                 </a>
                                             </div>
                                             @endcan
-                                         
-                                            @can('delete budget planner')
-                                            <div class="action-btn ">
+                                            @can('view budget plan')
+                                                <div class="action-btn me-2">
+                                                    <a href="{{ route('budget.show',\Crypt::encrypt($budget->id)) }}" class="mx-3 btn btn-sm align-items-center bg-warning " data-bs-toggle="tooltip" title="{{__('View')}}" data-original-title="{{__('Detail')}}">
+                                                        <i class="ti ti-eye text-white"></i>
+                                                    </a>
+                                                </div>
+                                            @endcan
+                                            @can('delete budget plan')
+                                                <div class="action-btn ">
                                             {!! Form::open(['method' => 'DELETE', 'route' => ['budget.destroy', $budget->id],'id'=>'delete-form-'.$budget->id]) !!}
 
                                                 <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger" data-bs-toggle="tooltip" title="{{__('Delete')}}" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$budget->id}}').submit();">

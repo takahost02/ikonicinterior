@@ -18,16 +18,16 @@ class CreateInvoicePaymentsTable extends Migration
             $table->bigIncrements('id');
             $table->integer('invoice_id');
             $table->date('date');
-            $table->decimal('amount', 15, 2)->default('0.00');
-            $table->integer('account_id');
-            $table->integer('payment_method');
+            $table->decimal('amount', 16, 2)->default('0.0');
+            $table->integer('account_id')->default(0);
+            $table->integer('payment_method')->default(0);
             $table->string('order_id')->nullable();
             $table->string('currency')->nullable();
             $table->string('txn_id')->nullable();
             $table->string('payment_type')->default('Manually');
             $table->string('receipt')->nullable();
-            $table->string('reference')->nullable();
             $table->string('add_receipt')->nullable();
+            $table->string('reference')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
         }

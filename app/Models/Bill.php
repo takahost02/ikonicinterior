@@ -25,6 +25,16 @@ class Bill extends Model
         'Paid',
     ];
 
+    public function customer()
+    {
+        return $this->hasOne('App\Models\Customer', 'id', 'vender_id');
+    }
+
+    public function employee()
+    {
+        return $this->hasOne('App\Models\Employee', 'id', 'vender_id');
+    }
+
     public function vender()
     {
         return $this->hasOne('App\Models\Vender', 'id', 'vender_id');
@@ -35,20 +45,11 @@ class Bill extends Model
         return $this->hasOne('App\Models\Tax', 'id', 'tax_id');
     }
 
-    public function items()
-    {
-        return $this->hasMany('App\Models\BillProduct', 'bill_id', 'id');
-    }
-
     public function payments()
     {
         return $this->hasMany('App\Models\BillPayment', 'bill_id', 'id');
     }
 
-    public function accounts()
-    {
-        return $this->hasMany('App\Models\BillAccount', 'ref_id', 'id');
-    }
 
     public function getSubTotal()
     {
@@ -58,38 +59,31 @@ class Bill extends Model
         {
             $subTotal += ($product->price * $product->quantity);
         }
-
-        $accountTotal = 0;
-        foreach ($this->accounts as $account)
-        {
-            $accountTotal += $account->price;
-        }
-
-        return $subTotal + $accountTotal;
+        
+        return $subTotal;
     }
 
-    // public function getTotalTax()
-    // {
-    //     $totalTax = 0;
-    //     foreach ($this->items as $product) {
-    //         $taxes = Utility::totalTaxRate($product->tax);
+    public function items()
+    {
+        return $this->hasMany('App\Models\BillProduct', 'bill_id', 'id');
+    }
 
-    //         $totalTax += ($taxes / 100) * ($product->price * $product->quantity);
-    //     }
-
-    //     return $totalTax;
-    // }
 
 
     public function getTotalTax()
     {
+        $taxData = Utility::getTaxData();
         $totalTax = 0;
         foreach($this->items as $product)
         {
-            $taxes = Utility::totalTaxRate($product->tax);
 
+            $taxArr = explode(',', $product->tax);
+            $taxes = 0;
+            foreach ($taxArr as $tax) {
+                $taxes += !empty($taxData[$tax]['rate']) ? $taxData[$tax]['rate'] : 0;
+            }
 
-            $totalTax += ($taxes / 100) * ($product->price * $product->quantity - $product->discount) ;
+            $totalTax += ($taxes / 100) * ($product->price * $product->quantity);
         }
 
         return $totalTax;
@@ -98,35 +92,28 @@ class Bill extends Model
     public function getTotalDiscount()
     {
         $totalDiscount = 0;
-        foreach ($this->items as $product) {
+        foreach($this->items as $product)
+        {
             $totalDiscount += $product->discount;
         }
 
         return $totalDiscount;
     }
 
-    // public function getTotal()
-    // {
-    //     return ($this->getSubTotal() + $this->getTotalTax()) - $this->getTotalDiscount();
-    // }
-
     public function getTotal()
     {
-
-        return ($this->getSubTotal() -$this->getTotalDiscount()) + $this->getTotalTax();
-        //        return ($this->getSubTotal() + $this->getTotalTax()) - $this->getTotalDiscount();
+        return ($this->getSubTotal() - $this->getTotalDiscount()) + $this->getTotalTax();
     }
-
-
 
     public function getDue()
     {
         $due = 0;
-        foreach ($this->payments as $payment) {
+        foreach($this->payments as $payment)
+        {
             $due += $payment->amount;
         }
 
-        return ($this->getTotal() - $due) - ($this->billTotalDebitNote());
+            return ($this->getTotal() - $due) - ($this->billTotalDebitNote());
     }
 
     public function category()
@@ -141,54 +128,21 @@ class Bill extends Model
 
     public function billTotalDebitNote()
     {
-        return $this->hasMany('App\Models\DebitNote', 'bill', 'id')->sum('amount');
+        return $this->hasMany(DebitNote::class, 'bill', 'id')->sum('amount');
+    }
+
+    public function billTotalCustomerDebitNote()
+    {
+        return $this->hasMany(CustomerDebitNotes::class, 'bill', 'id')->sum('amount');
     }
 
     public function lastPayments()
     {
-        return $this->hasOne('App\Models\BillPayment', 'id', 'bill_id');
+        return $this->hasOne('App\Models\BillPayment', 'bill_id', 'id')->latest('created_at');
     }
 
     public function taxes()
     {
         return $this->hasOne('App\Models\Tax', 'id', 'tax');
-    }
-    public static function vendor($venders)
-    {
-        $categoryArr  = explode(',', $venders);
-        $unitRate = 0;
-        foreach ($categoryArr as $venders) {
-            if ($venders == 0) {
-                $unitRate = '';
-            } else {
-                $venders        = Vender::find($venders);
-                $unitRate        = ($venders)? $venders->name : '';
-            }
-        }
-
-        return $unitRate;
-    }
-
-    public static function ProposalCategory($category)
-    {
-        $categoryArr  = explode(',', $category);
-        $categoryRate = 0;
-        foreach ($categoryArr as $category) {
-            $category    = ProductServiceCategory::find($category);
-            $categoryRate        = $category->name ?? '-';
-        }
-
-        return $categoryRate;
-    }
-
-    public function getAccountTotal()
-    {
-        $accountTotal = 0;
-        foreach ($this->accounts as $account)
-        {
-            $accountTotal += $account->price;
-        }
-
-        return $accountTotal;
     }
 }

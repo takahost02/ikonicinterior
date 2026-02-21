@@ -17,10 +17,9 @@ class CreateCustomersTable extends Migration
             'customers', function (Blueprint $table){
             $table->bigIncrements('id');
             $table->integer('customer_id');
-            $table->string('name');
-            $table->string('email');
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
             $table->string('tax_number')->nullable();
-            $table->string('password');
             $table->string('contact')->nullable();
             $table->string('avatar', 100)->default('');
             $table->integer('created_by')->default(0);
@@ -41,9 +40,8 @@ class CreateCustomersTable extends Migration
             $table->string('shipping_zip')->nullable();
             $table->text('shipping_address')->nullable();
             $table->string('lang')->default('en');
-            $table->decimal('balance', 15, 2)->default('0.00');
+            $table->decimal('balance',15,2)->default('0.00');
             $table->rememberToken();
-            $table->datetime('last_login_at')->nullable();
             $table->timestamps();
         }
         );

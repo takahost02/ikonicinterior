@@ -17,6 +17,7 @@ class VerifyReCaptchaToken
     /**
      * Create a new event instance.
      */
+
     public $request;
 
     public function __construct($request)

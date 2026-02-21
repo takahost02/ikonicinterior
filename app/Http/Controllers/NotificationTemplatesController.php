@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Language;
 use App\Models\NotificationTemplateLangs;
 use App\Models\NotificationTemplates;
 use App\Models\Utility;
@@ -11,13 +12,85 @@ class NotificationTemplatesController extends Controller
 {
     public function index($id = null, $lang = 'en')
     {
-        $usr = \Auth::user();
 
-        if ($usr->type == 'company') {
+        if(\Auth::user()->type == 'super admin' || \Auth::user()->type == 'company')
+        {
+
+            if($id != null)
+            {
+                $notification_template     = NotificationTemplates::where('id',$id)->first();
+            }
+            else
+            {
+                $notification_template     = NotificationTemplates::first();
+            }
+            if(empty($notification_template))
+            {
+                return redirect()->back()->with('error', __('Not exists in notification template.'));
+            }
+
+            $languages          = Utility::languages();
+            $LangName = Language::where('code',$lang)->first();
+            $curr_noti_tempLang = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)
+                                ->where('lang', $lang)
+                                ->where('created_by', '=', \Auth::user()->creatorId())
+                                ->first();
+
+            if(!isset($curr_noti_tempLang) || empty($curr_noti_tempLang))
+            {
+                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', $lang)->first();
+            }
+
+            if(!isset($curr_noti_tempLang) || empty($curr_noti_tempLang))
+            {
+                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', 'en')->first();
+                !empty($curr_noti_tempLang) ? $curr_noti_tempLang->lang = $lang : null;
+            }
+
+
+
+            $notification_templates = NotificationTemplates::get();
+
+            return view('notification_templates.index', compact('notification_template','notification_templates','curr_noti_tempLang','languages','LangName'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+    public function manageNotificationLang($id = null, $lang = 'en')
+    {
+        if(\Auth::user()->type == 'company')
+        {
+            if($id != null)
+            {
+                $notification_template     = NotificationTemplates::where('id',$id)->first();
+            }
+            else
+            {
+                $notification_template     = NotificationTemplates::first();
+            }
+            if(empty($notification_template))
+            {
+                return redirect()->back()->with('error', __('Not exists in notification template.'));
+            }
+            $languages         = Utility::languages();
+            $curr_noti_tempLang = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', $lang)->where('created_by', '=', \Auth::user()->creatorId())->first();
+            if(!isset($curr_noti_tempLang) || empty($curr_noti_tempLang))
+            {
+                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', $lang)->first();
+            }
+            if(!isset($curr_noti_tempLang) || empty($curr_noti_tempLang))
+            {
+                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', 'en')->first();
+                !empty($curr_noti_tempLang) ? $curr_noti_tempLang->lang = $lang : null;
+            }
             $notification_templates = NotificationTemplates::all();
-
-            return view('notification_templates.index', compact('notification_templates'));
-        } else {
+            return view('notification_templates.show', compact('notification_template','notification_templates','curr_noti_tempLang','languages'));
+        }
+        else
+        {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
@@ -59,43 +132,10 @@ class NotificationTemplatesController extends Controller
         }
 
         return redirect()->route(
-            'manage.notification.language',
-            [
+            'manage.notification.language', [
                 $id,
                 $request->lang,
             ]
         )->with('success', __('Notification Template successfully updated.'));
-    }
-
-    public function manageNotificationLang($id = null, $lang = 'en')
-    {
-        if (\Auth::user()->type == 'company') {
-            if ($id != null) {
-                $notification_template     = NotificationTemplates::where('id', $id)->first();
-            } else {
-                $notification_template     = NotificationTemplates::first();
-            }
-            if (empty($notification_template)) {
-                return redirect()->back()->with('error', __('Not exists in notification template.'));
-            }
-            $languages         = Utility::languages();
-            $curr_noti_tempLang = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', $lang)->where('created_by', '=', \Auth::user()->creatorId())->first();
-            if (!isset($curr_noti_tempLang) || empty($curr_noti_tempLang)) {
-                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', $lang)->first();
-            }
-            if (!isset($curr_noti_tempLang) || empty($curr_noti_tempLang)) {
-                $curr_noti_tempLang       = NotificationTemplateLangs::where('parent_id', '=', $notification_template->id)->where('lang', 'en')->first();
-                !empty($curr_noti_tempLang) ? $curr_noti_tempLang->lang = $lang : null;
-            }
-            $notification_templates = NotificationTemplates::all();
-            return view('notification_templates.show', compact('notification_template', 'notification_templates', 'curr_noti_tempLang', 'languages'));
-        } else {
-            return redirect()->back()->with('error', __('Permission denied.'));
-        }
-    }
-
-    public function show()
-    {
-        return redirect()->back();
     }
 }

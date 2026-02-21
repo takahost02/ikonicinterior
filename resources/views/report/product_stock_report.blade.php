@@ -4,44 +4,22 @@
 @endsection
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
-    <li class="breadcrumb-item">{{__('Report')}}</li>
-    <li class="breadcrumb-item">{{__('Product Stock Report')}}</li>
+    <li class="breadcrumb-item">{{__('Product Stock')}}</li>
 @endsection
+
 @section('action-btn')
-    <div class="d-flex">
+    <div class="float-end">
         <a href="{{ route('productstock.export') }}" data-bs-toggle="tooltip" title="{{ __('Export') }}"
-            class="btn btn-sm btn-primary">
-            <i class="ti ti-file-export"></i>   
+           class="btn btn-sm btn-secondary">
+            <i class="ti ti-file-export"></i>
         </a>
+
     </div>
 @endsection
-{{-- @push('script-page')
-<script type="text/javascript" src="{{ asset('js/html2pdf.bundle.min.js') }}"></script>
-<script>
-    
-    var filename = $('#filename').val();
 
-    function saveAsPDF() {
-        var element = document.getElementById('printableArea');
-        var opt = {
-            margin: 0.3,
-            filename: filename,
-            image: {type: 'jpeg', quality: 1},
-            html2canvas: {scale: 4, dpi: 72, letterRendering: true},
-            jsPDF: {unit: 'in', format: 'A4'}
-        };
-        console.log(opt);
-        html2pdf().set(opt).from(element).save();
-
-    }
-
-</script>
-@endpush --}}
 @section('content')
-{{-- <div id="printableArea"> --}}
     <div class="row">
         <div class="col-md-12">
-            {{-- <input type="hidden" value="{{__('Product Stock Report')}}" id="filename"> --}}
             <div class="card">
                 <div class="card-body table-border-style">
                     <div class="table-responsive">
@@ -56,15 +34,28 @@
                             </tr>
                             </thead>
                             <tbody>
-                                @foreach ($stocks as $stock)
-                                    <tr>
-                                        <td class="font-style">{{$stock->created_at->format('d M Y')}}</td>
-                                        <td>{{ !empty($stock->product) ? $stock->product->name : '' }}
-                                        <td class="font-style">{{ $stock->quantity }}</td>
-                                        <td class="font-style">{{ ucfirst($stock->type) }}</td>
-                                        <td class="font-style">{{$stock->description}}</td>
-                                    </tr>
-                                @endforeach
+                            @foreach ($stocks as $stock)
+                                <tr>
+                                    <td class="font-style">{{$stock->created_at->format('d M Y')}}</td>
+                                    <td>{{ !empty($stock->product) ? $stock->product->name : '' }}</td>
+                                    <td class="font-style">{{ $stock->quantity }}</td>
+                                    <td>
+                                        @if ($stock->type == "manually")
+                                            <span class="status_badge badge bg-secondary p-2 px-3 rounded">{{ ucfirst($stock->type) }}</span>
+                                        @elseif($stock->type == "invoice")
+                                            <span class="status_badge badge bg-warning p-2 px-3 rounded">{{ ucfirst($stock->type) }}</span>
+                                        @elseif($stock->type == "bill")
+                                            <span class="status_badge badge bg-primary p-2 px-3 rounded">{{ ucfirst($stock->type) }}</span>
+                                        @elseif($stock->type == "purchase")
+                                            <span class="status_badge badge bg-danger p-2 px-3 rounded">{{ ucfirst($stock->type) }}</span>
+                                        @elseif($stock->type == "pos")
+                                            <span class="status_badge badge bg-info p-2 px-3 rounded">{{ ucfirst($stock->type) }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="font-style">{{$stock->description}}</td>
+
+                                </tr>
+                            @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -72,5 +63,5 @@
             </div>
         </div>
     </div>
-{{-- </div> --}}
 @endsection
+

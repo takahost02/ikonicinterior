@@ -9,7 +9,7 @@
 @endsection
 
 @section('action-btn')
-    <div class="d-flex">
+    <div class="float-end">
         @can('create journal entry')
             <a href="{{ route('journal-entry.create') }}" data-title="{{__('Create New Journal')}}" data-bs-toggle="tooltip"  title="{{__('Create')}}" class="btn btn-sm btn-primary">
                 <i class="ti ti-plus"></i>
@@ -55,7 +55,7 @@
                                             </div>
                                         @endcan
                                         @can('delete journal entry')
-                                                <div class="action-btn me-2">
+                                                <div class="action-btn ">
                                                     {!! Form::open(['method' => 'DELETE', 'route' => array('journal-entry.destroy', $journalEntry->id),'id'=>'delete-form-'.$journalEntry->id]) !!}
 
                                                     <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger" data-bs-toggle="tooltip" title="{{__('Delete')}}" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$journalEntry->id}}').submit();">

@@ -1,11 +1,10 @@
 /**
- * @preserve HTML5 Shiv 3.7.3 | @afarkas @jdalton @jon_neal @rem | MIT/GPL2 Licensed
+ * @preserve HTML5 Shiv 3.7.2 | @afarkas @jdalton @jon_neal @rem | MIT/GPL2 Licensed
  */
-;
-(function(window, document) {
+;(function(window, document) {
     /*jshint evil:true */
     /** version */
-    var version = '3.7.3';
+    var version = '3.7.2';
 
     /** Preset options */
     var options = window.html5 || {};
@@ -48,7 +47,7 @@
                     typeof frag.createElement == 'undefined'
                 );
             }());
-        } catch (e) {
+        } catch(e) {
             // assign a false positive if detection fails => unable to shiv
             supportsHtml5Styles = true;
             supportsUnknownElements = true;
@@ -91,13 +90,13 @@
      */
     function addElements(newElements, ownerDocument) {
         var elements = html5.elements;
-        if (typeof elements != 'string') {
+        if(typeof elements != 'string'){
             elements = elements.join(' ');
         }
-        if (typeof newElements != 'string') {
+        if(typeof newElements != 'string'){
             newElements = newElements.join(' ');
         }
-        html5.elements = elements + ' ' + newElements;
+        html5.elements = elements +' '+ newElements;
         shivDocument(ownerDocument);
     }
 
@@ -122,14 +121,14 @@
      * returns a shived element for the given nodeName and document
      * @memberOf html5
      * @param {String} nodeName name of the element
-     * @param {Document|DocumentFragment} ownerDocument The context document.
+     * @param {Document} ownerDocument The context document.
      * @returns {Object} The shived element.
      */
-    function createElement(nodeName, ownerDocument, data) {
+    function createElement(nodeName, ownerDocument, data){
         if (!ownerDocument) {
             ownerDocument = document;
         }
-        if (supportsUnknownElements) {
+        if(supportsUnknownElements){
             return ownerDocument.createElement(nodeName);
         }
         if (!data) {
@@ -161,11 +160,11 @@
      * @param {Document} ownerDocument The context document.
      * @returns {Object} The shived DocumentFragment.
      */
-    function createDocumentFragment(ownerDocument, data) {
+    function createDocumentFragment(ownerDocument, data){
         if (!ownerDocument) {
             ownerDocument = document;
         }
-        if (supportsUnknownElements) {
+        if(supportsUnknownElements){
             return ownerDocument.createDocumentFragment();
         }
         data = data || getExpandoData(ownerDocument);
@@ -173,7 +172,7 @@
             i = 0,
             elems = getElements(),
             l = elems.length;
-        for (; i < l; i++) {
+        for(;i<l;i++){
             clone.createElement(elems[i]);
         }
         return clone;
@@ -320,8 +319,4 @@
     // shiv the document
     shivDocument(document);
 
-    if (typeof module == 'object' && module.exports) {
-        module.exports = html5;
-    }
-
-}(typeof window !== "undefined" ? window : this, document));
+}(this, document));

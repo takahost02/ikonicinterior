@@ -2,8 +2,8 @@
 
 namespace App\Exports;
 
-use App\Models\Customer;
 use App\Models\Proposal;
+use App\Models\ProductServiceCategory;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -14,50 +14,16 @@ class ProposalExport implements FromCollection, WithHeadings
      */
     public function collection()
     {
-        $data = [];
+        $data = Proposal::where('created_by', \Auth::user()->creatorId())->get();
 
-        if(!\Auth::guard('customer')->check())
+        foreach($data as $k => $proposal )
         {
-            $data = Proposal::where('created_by' , \Auth::user()->id)->get();
-        }
-        else{
-            $data = Proposal::where('customer_id', \Auth::guard('customer')->check())->where('status', '!=', '0')->get();
-        } 
+            unset($proposal->id, $proposal->created_by,$proposal->customer_id,$proposal->converted_invoice_id,$proposal->is_convert,$proposal->discount_apply,$proposal->created_at,$proposal->updated_at);
+            $data[$k]["proposal_id"] = \Auth::user()->proposalNumberFormat($proposal->proposal_id);
+//            $data[$k]["customer_id"] = \Auth::user()->customerNumberFormat($proposal->customer_id);
+            $data[$k]["category_id"] = ProductServiceCategory::where('type', 'income')->where('id' , $proposal->category_id)->first()->name;
+            $data[$k]["status"]       = Proposal::$statues[$proposal->status];
 
-        foreach ($data as $k => $Proposal) {
-            $customer  = Proposal::customers($Proposal->customer_id);
-            $category  = Proposal::ProposalCategory($Proposal->category_id);
-            if($Proposal->status == 0)
-            {
-                $status = 'Draft';
-            }
-            elseif($Proposal->status == 1)
-            {
-                $status = 'Open';
-            }
-            elseif($Proposal->status == 2)
-            {
-                $status = 'Accepted';
-            }
-            elseif($Proposal->status == 3)
-            {
-                $status = 'Declined';
-            }
-            elseif($Proposal->status == 4)
-            {
-                $status = 'Close';
-            }
-            
-            unset($Proposal->id,$Proposal->discount_apply, $Proposal->converted_invoice_id, $Proposal->is_convert,$Proposal->converted_retainer_id, $Proposal->created_by, $Proposal->updated_at, $Proposal->created_at);
-            if(!\Auth::guard('customer')->check())
-            {
-                $data[$k]["proposal_id"] = \Auth::user()->proposalNumberFormat($Proposal->proposal_id);
-            }
-            else{
-                $data[$k]["proposal_id"]   = Customer::proposalNumberFormat($Proposal->proposal_id);
-            }            $data[$k]["customer_id"]        = $customer;
-            $data[$k]["category_id"]   = $category;
-            $data[$k]["status"]          = $status;
         }
 
         return $data;
@@ -66,12 +32,12 @@ class ProposalExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
-            "Proposal_Id",
-            "Customer_name",
-            "issue Date",
+            "Proposal No",
+            "Issue Date",
             "Send Date",
-            "Category Id",
-            "status"
+            "Category",
+            "Status",
+
         ];
     }
 }

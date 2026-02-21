@@ -18,20 +18,26 @@ class ProductStockExport implements FromCollection, WithHeadings
         if (!empty($data)) {
             foreach ($data as $k => $Stock) {
                 // $product  = $Stock->product_id;
-                $product  = StockReport::products($Stock->product_id);
+                $product = StockReport::products($Stock->product_id);
+                // unset($Stock->id,$Stock->created_by,$Stock->updated_at,$Stock->type_id);
+                // $data[$k]["product_id"]        = $product;
 
-                // dd($product);
-                unset($Stock->created_by,$Stock->updated_at,$Stock->type_id);
-                $data[$k]["product_id"]        = $product;
+                $formattedDate = $Stock->created_at->format('d M Y');
+                $data[$k] = [
+                    'product_name' => $product,
+                    'quantity' => $Stock->quantity,
+                    'type' => ucfirst($Stock->type),
+                    'description' => $Stock->description,
+                    'date' => $formattedDate,
+                ];
             }
-        }    
-        return $data;
+        }
+        return collect($data);
     }
 
     public function headings(): array
     {
         return [
-            "Stock Id",
             "Product Name",
             "Quantity",
             "Type",

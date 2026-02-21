@@ -7,24 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 class Transfer extends Model
 {
     protected $fillable = [
-        'from_account',
-        'to_account',
-        'amount',
-        'date',
-        'payment_method',
-        'reference',
+        'employee_id',
+        'branch_id',
+        'department_id',
+        'transfer_date',
         'description',
         'created_by',
     ];
 
-    public function fromBankAccount()
+    public function department()
     {
-        return $this->hasOne('App\Models\BankAccount', 'id', 'from_account')->first();
+        return $this->hasOne('App\Models\Department', 'id', 'department_id');
     }
 
-    public function toBankAccount()
+    public function branch()
     {
-        return $this->hasOne('App\Models\BankAccount', 'id', 'to_account')->first();
+        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
     }
 
+    public function employee()
+    {
+        return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
+    }
 }

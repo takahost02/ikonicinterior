@@ -16,10 +16,10 @@ class CreateBillPaymentsTable extends Migration
         Schema::create('bill_payments', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->integer('bill_id');
-            $table->date('date')->nullable();
-            $table->decimal('amount', 15, 2)->default('0.00');
-            $table->integer('account_id')->nullable();
-            $table->integer('payment_method')->nullable();
+            $table->date('date');
+            $table->decimal('amount', 16, 2)->default('0.0');
+            $table->integer('account_id');
+            $table->integer('payment_method');
             $table->string('reference')->nullable();
             $table->string('add_receipt')->nullable();
             $table->text('description')->nullable();

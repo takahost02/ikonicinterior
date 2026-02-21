@@ -18,7 +18,6 @@
 namespace Twilio\Rest\Content\V1\Content;
 
 use Twilio\Exceptions\TwilioException;
-use Twilio\Values;
 use Twilio\Version;
 use Twilio\InstanceContext;
 
@@ -29,21 +28,21 @@ class ApprovalFetchContext extends InstanceContext
      * Initialize the ApprovalFetchContext
      *
      * @param Version $version Version that contains the resource
-     * @param string $contentSid The Twilio-provided string that uniquely identifies the Content resource whose approval information to fetch.
+     * @param string $sid The Twilio-provided string that uniquely identifies the Content resource whose approval information to fetch.
      */
     public function __construct(
         Version $version,
-        $contentSid
+        $sid
     ) {
         parent::__construct($version);
 
         // Path Solution
         $this->solution = [
-        'contentSid' =>
-            $contentSid,
+        'sid' =>
+            $sid,
         ];
 
-        $this->uri = '/Content/' . \rawurlencode($contentSid)
+        $this->uri = '/Content/' . \rawurlencode($sid)
         .'/ApprovalRequests';
     }
 
@@ -56,13 +55,12 @@ class ApprovalFetchContext extends InstanceContext
     public function fetch(): ApprovalFetchInstance
     {
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->fetch('GET', $this->uri, [], [], $headers);
+        $payload = $this->version->fetch('GET', $this->uri, [], []);
 
         return new ApprovalFetchInstance(
             $this->version,
             $payload,
-            $this->solution['contentSid']
+            $this->solution['sid']
         );
     }
 

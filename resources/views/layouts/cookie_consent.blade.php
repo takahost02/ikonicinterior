@@ -1,15 +1,11 @@
+@php
+    $setting = \App\Models\Utility::settings();
+@endphp
+
 <link rel='stylesheet' href='{{asset('css/cookieconsent.css')}}' media="screen" />
 <script src="{{ asset('js/cookieconsent.js') }}"></script>
 
 <script>
-
-<?php
-    $setting= \App\Models\Utility::settings();
-    $data=json_encode($setting);
-?>
-var data={!! json_encode($data) !!};
-var parsed = JSON.parse(data);
-
     let language_code = document.documentElement.getAttribute('lang');
     let languages = {};
     languages[language_code] = {
@@ -47,17 +43,16 @@ var parsed = JSON.parse(data);
                         },
                     ]
                 }
-            };
-            </script>
-        <script>
-            function setCookie(cname, cvalue, exdays) {
-                const d = new Date();
-                d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-                let expires = "expires=" + d.toUTCString();
-                document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-            }
-            
-            function getCookie(cname) {
+    };
+</script>
+<script>
+    function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+        let expires = "expires=" + d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+    function getCookie(cname) {
                 let name = cname + "=";
                 let decodedCookie = decodeURIComponent(document.cookie);
                 let ca = decodedCookie.split(';');
@@ -72,12 +67,10 @@ var parsed = JSON.parse(data);
                 }
                 return "";
             }
-            
-            
-            // obtain plugin
-            var cc = initCookieConsent();
-            // run plugin with your configuration
-            cc.run({
+    // obtain plugin
+    var cc = initCookieConsent();
+    // run plugin with your configuration
+    cc.run({
                 current_lang: 'en',
                 autoclear_cookies: true, // default: false
                 page_scripts: true,
@@ -95,7 +88,7 @@ var parsed = JSON.parse(data);
                         transition: 'slide' // zoom/slide
                     }
                 },
-               
+
                 onChange: function(cookie, changed_preferences) {},
                 onAccept: function(cookie) {
                     if (!getCookie('cookie_consent_logged')) {
@@ -110,12 +103,14 @@ var parsed = JSON.parse(data);
                         setCookie('cookie_consent_logged', '1', 182, '/');
                     }
                 },
-                
+
+
+
                 languages: {
                     'en': {
                         consent_modal: {
-                            title: parsed.cookie_title,
-                            description: parsed.cookie_description + ' <button type="button" data-cc="c-settings" class="cc-link">Let me choose</button>',
+                            title: "{{$setting['cookie_title']}}",
+                            description: '{{$setting['cookie_description']}}. <button type="button" data-cc="c-settings" class="cc-link">{{__('Let me choose')}}</button>',
                             primary_btn: {
                                 text: 'Accept all',
                                 role: 'accept_all' // 'accept_selected' or 'accept_all'
@@ -145,11 +140,11 @@ var parsed = JSON.parse(data);
                                 }
                             ],
                             blocks: [{
-                                title: parsed.cookie_title + ' 📢',
-                                description: parsed.cookie_description +'.'
+                                title: '{{$setting['cookie_title']}}',
+                                description: '{{$setting['cookie_description']}}.'
                             }, {
-                                title: parsed.strictly_cookie_title,
-                                description: parsed.strictly_cookie_description,
+                                title: "{{$setting['strictly_cookie_title']}}",
+                                description: '{{$setting['strictly_cookie_description']}}',
                                 toggle: {
                                     value: 'necessary',
                                     enabled: true,
@@ -162,6 +157,6 @@ var parsed = JSON.parse(data);
                         }
                     }
                 }
-                
+
             });
-        </script>
+</script>

@@ -104,23 +104,17 @@ if (strpos(Config::$clientKey, 'your ') != false ) {
                     openDialog(redirect_url);
                 },
                 onSuccess: function(response){
-                    console.log('sukses');
-                    console.log('response:',response);
                     closeDialog();
                     // Submit form
                     $("#token_id").val(response.token_id);
                     $("#payment-form").submit();
                 },
                 onFailure: function(response){
-                    console.log('gagal');
-                    console.log('response:',response);
                     closeDialog();
                     alert(response.status_message);
                     $('button').removeAttr("disabled");
                 },
                 onPending: function(response){
-                    console.log('pending');
-                    console.log('response:',response);
                     closeDialog();
                 }
             };
@@ -129,12 +123,10 @@ if (strpos(Config::$clientKey, 'your ') != false ) {
             var callback = {
                 onSuccess: function(response){
                     // Success to get card token_id, implement as you wish here
-                    console.log('Success to get card token_id, response:', response);
                     MidtransNew3ds.authenticate(response.redirect_url, options);
                 },
                 onFailure: function(response){
                     // Fail to get card token_id, implement as you wish here
-                    console.log('Fail to get card token_id, response:', response);
                     closeDialog();
                     $('button').removeAttr("disabled");
                 }
@@ -142,9 +134,9 @@ if (strpos(Config::$clientKey, 'your ') != false ) {
 
             function openDialog(url) {
                 $.featherlight({
-                iframe: url, 
-                iframeMaxWidth: '80%', 
-                iframeWidth: 700, 
+                iframe: url,
+                iframeMaxWidth: '80%',
+                iframeWidth: 700,
                 iframeHeight: 500,
                 closeOnClick: false,
                 closeOnEsc: false,
@@ -157,7 +149,6 @@ if (strpos(Config::$clientKey, 'your ') != false ) {
             }
 
             $(".submit-button").click(function (event) {
-                console.log("SUBMIT");
                 event.preventDefault();
                 $(this).attr("disabled", "disabled");
                 MidtransNew3ds.getCardToken(card, callback);

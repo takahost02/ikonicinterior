@@ -14,18 +14,16 @@ class PermissionController extends Controller
     public function index()
     {
 
-        $permissions = Permission::all();
+        // $permissions = Permission::all();
 
-        return view('permission.index')->with('permissions', $permissions);
-
-
+        // return view('permission.index')->with('permissions', $permissions);
+        abort(404);
     }
 
     public function create()
     {
 
         $roles = Role::get();
-//        $roles = Role::where('created_by', '=', \Auth::user()->creatorId())->get();
 
         return view('permission.create')->with('roles', $roles);
 
@@ -46,7 +44,6 @@ class PermissionController extends Controller
         $permission->name = $name;
 
         $roles = $request['roles'];
-
         $permission->save();
 
         if(!empty($request['roles']))
@@ -99,7 +96,6 @@ class PermissionController extends Controller
 
     public function destroy($id)
     {
-
         $permission = Permission::findOrFail($id);
         $permission->delete();
 

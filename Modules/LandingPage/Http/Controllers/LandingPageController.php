@@ -16,7 +16,13 @@ class LandingPageController extends Controller
      */
     public function index()
     {
-        return view('landingpage::landingpage.topbar');
+        if(\Auth::user()->type == 'super admin')
+        {
+            return view('landingpage::landingpage.topbar');
+        }
+        else{
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
     }
 
     /**

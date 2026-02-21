@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Bill;
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Budget;
 use App\Models\Payment;
@@ -21,7 +23,7 @@ class BudgetController extends Controller
      */
     public function index()
     {
-        if(\Auth::user()->can('manage budget planner'))
+        if(\Auth::user()->can('manage budget plan'))
         {
             $budgets = Budget::where('created_by', '=', \Auth::user()->creatorId())->get();
             $periods = Budget::$period;
@@ -31,6 +33,7 @@ class BudgetController extends Controller
         {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+
     }
 
     /**
@@ -40,7 +43,8 @@ class BudgetController extends Controller
      */
     public function create()
     {
-        if(\Auth::user()->can('create budget planner'))
+
+        if(\Auth::user()->can('create budget plan'))
         {
             $periods = Budget::$period;
 
@@ -76,6 +80,7 @@ class BudgetController extends Controller
             return response()->json(['error' => __('Permission denied.')], 401);
 
         }
+
     }
 
 
@@ -88,7 +93,8 @@ class BudgetController extends Controller
      */
     public function store(Request $request)
     {
-        if(\Auth::user()->can('create budget planner'))
+
+        if(\Auth::user()->can('create budget plan'))
         {
             $validator = \Validator::make($request->all(), [
                 'name' => 'required',
@@ -141,21 +147,24 @@ class BudgetController extends Controller
                 $status = Utility::WebhookCall($webhook['url'],$parameter,$webhook['method']);
                 if($status == true)
                 {
-                    return redirect()->route('budget.index')->with('success', __('Budget planner successfully created.'));
+                    return redirect()->route('budget.index')->with('success', __('Budget Plan successfully created.'));
                 }
                 else
                 {
-                    return redirect()->back()->with('error', __('Webhook call failed.'));
+                    return redirect()->back()->with('error', __('Budget plan successfully created, Webhook call failed.'));
                 }
             }
 
 
-            return redirect()->route('budget.index')->with('success', __('Budget planner successfully created.'));
+            return redirect()->route('budget.index')->with('success', __('Budget Plan successfully created.'));
         }
         else
         {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+
+
+
     }
 
 
@@ -168,7 +177,8 @@ class BudgetController extends Controller
      */
     public function show($ids)
     {
-        if(\Auth::user()->can('view budget planner'))
+
+        if(\Auth::user()->can('view budget plan'))
         {
             try {
                 $id       = Crypt::decrypt($ids);
@@ -178,8 +188,8 @@ class BudgetController extends Controller
 
             $id                    = Crypt::decrypt($ids);
             $budget                = Budget::find($id);
-            $budget['income_data'] = json_decode($budget->income_data, true);
-            $budgetTotalArrs       = !empty ($budget['income_data']) ? (array_values($budget['income_data']))  : [] ;
+            $budget['income_data'] = json_decode($budget->income_data, true) ?? [];
+            $budgetTotalArrs       = is_array($budget['income_data']) ? array_values($budget['income_data']) : [];
 
 
             $budgetTotal = array();
@@ -238,7 +248,8 @@ class BudgetController extends Controller
             }
             $data['currentYear'] = $year;
 
-            $incomeproduct = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'income')->get();
+            $income_product = array_keys($budget->income_data);
+            $incomeproduct = ProductServiceCategory::whereIn('id',$income_product)->where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'income')->get();
 
 
             $incomeArr      = [];
@@ -366,10 +377,13 @@ class BudgetController extends Controller
 
                     }
                     $incomeArr[$cat->id] = $monthIncomeArr;
-                }
-            }
 
-            $expenseproduct = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'expense')->get();
+
+                }
+
+            }
+            $expense_product = array_keys($budget->expense_data);
+            $expenseproduct = ProductServiceCategory::whereIn('id',$expense_product)->where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'expense')->get();
 
             $expenseArr = [];
             $expenseTotalArr = [];
@@ -399,7 +413,7 @@ class BudgetController extends Controller
                         $bills->where('category_id', $expense->id);
                         $bills->whereRAW('YEAR(send_date) =?', [$year]);
                         $bills->whereRAW('MONTH(send_date) =?', [$i]);
-                        $bills = $bills->with(['items','accounts'])->get();
+                        $bills = $bills->with(['items'])->get();
 
                         $billAmount = 0;
                         foreach($bills as $bill)
@@ -427,7 +441,9 @@ class BudgetController extends Controller
                     }
                     $expenseArr[$expense->id] = $monthExpenseArr;
                 }
+
                 else if($budget->period == 'quarterly' || $budget->period == 'half-yearly' || $budget->period == 'yearly')
+
                 {
                     if($budget->period == 'quarterly')
                     {
@@ -447,7 +463,7 @@ class BudgetController extends Controller
                     {
                         $month         = explode('-', $monthnumber);
                         $paymentAmount = Payment::where('created_by', '=', \Auth::user()->creatorId());
-                        $paymentAmount->where('category_id', $cat->id);
+                        $paymentAmount->where('category_id', $expense->id);
                         $paymentAmount->whereRAW('YEAR(date) =?', [$year]);
                         $paymentAmount->whereRAW('MONTH(date) >=?', $month[0]);
                         $paymentAmount->whereRAW('MONTH(date) <=?', $month[1]);
@@ -462,7 +478,7 @@ class BudgetController extends Controller
                         $paymentTotalAmount = $paymentTotalAmount->sum('amount');
 
                         $bills = Bill::where('created_by', '=', \Auth::user()->creatorId());
-                        $bills->where('category_id', $cat->id);
+                        $bills->where('category_id', $expense->id);
                         $bills->whereRAW('YEAR(send_date) =?', [$year]);
                         $bills->whereRAW('MONTH(send_date) >=?', $month[0]);
                         $bills->whereRAW('MONTH(send_date) <=?', $month[1]);
@@ -473,6 +489,7 @@ class BudgetController extends Controller
                         {
                             $billAmount += $bill->getTotal();
                         }
+
 
                         $billsTotal = Bill::where('created_by', '=', \Auth::user()->creatorId());
                         $billsTotal->whereRAW('YEAR(send_date) =?', [$year]);
@@ -510,8 +527,8 @@ class BudgetController extends Controller
                     $actualprofit[$v] = (empty($incomeTotalArr[$v]) ? 0 : $incomeTotalArr[$v]) - (empty($expenseTotalArr[$v]) ? 0 : $expenseTotalArr[$v]);
                 }
                 $data['actualprofit']              = $actualprofit;
-            }
 
+            }
 
             return view('budget.show', compact('id', 'budget', 'incomeproduct', 'expenseproduct', 'incomeArr', 'expenseArr', 'incomeTotalArr','expenseTotalArr','budgetTotal','budgetExpenseTotal'
             ), $data);
@@ -521,6 +538,9 @@ class BudgetController extends Controller
         {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
+
+
+
     }
 
     /**
@@ -532,7 +552,8 @@ class BudgetController extends Controller
      */
     public function edit($ids)
     {
-        if(\Auth::user()->can('edit budget planner'))
+
+        if(\Auth::user()->can('edit budget plan'))
         {
             try {
                 $id       = Crypt::decrypt($ids);
@@ -567,19 +588,21 @@ class BudgetController extends Controller
 
 
             $data['yearList'] = $this->yearList();
-            if (!array_key_exists($budget->from, $data['yearList'])) {
-                $data['yearList'] = [$budget->from => $budget->from] + $data['yearList'];
-            }
+
 
             $incomeproduct  = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'income')->get();
             $expenseproduct = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'expense')->get();
 
+
             return view('budget.edit', compact('periods', 'budget', 'incomeproduct', 'expenseproduct'), $data);
         }
+
         else
         {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+
+
     }
 
     /**
@@ -592,7 +615,8 @@ class BudgetController extends Controller
      */
     public function update(Request $request, Budget $budget)
     {
-        if(\Auth::user()->can('edit budget planner'))
+
+        if(\Auth::user()->can('edit budget plan'))
         {
             if($budget->created_by == \Auth::user()->creatorId())
             {
@@ -616,7 +640,7 @@ class BudgetController extends Controller
                 $budget->save();
 
 
-                return redirect()->route('budget.index')->with('success', __('Budget planner successfully updated.'));
+                return redirect()->route('budget.index')->with('success', __('Budget Plan successfully updated.'));
             }
             else
             {
@@ -627,6 +651,9 @@ class BudgetController extends Controller
         {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
+
+
+
     }
 
     /**
@@ -638,12 +665,12 @@ class BudgetController extends Controller
      */
     public function destroy(Budget $budget)
     {
-        if(\Auth::user()->can('delete budget planner'))
+        if(\Auth::user()->can('delete budget plan'))
         {
             if($budget->created_by == \Auth::user()->creatorId())
             {
                 $budget->delete();
-                return redirect()->route('budget.index')->with('success', __('Budget Planner successfully deleted.'));
+                return redirect()->route('budget.index')->with('success', __('Budget Plan successfully deleted.'));
             }
             else
             {
@@ -654,11 +681,13 @@ class BudgetController extends Controller
         {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+
     }
 
 
     public function yearMonth()
     {
+
         $month[] = 'January';
         $month[] = 'February';
         $month[] = 'March';
@@ -688,4 +717,5 @@ class BudgetController extends Controller
 
         return $years;
     }
+
 }

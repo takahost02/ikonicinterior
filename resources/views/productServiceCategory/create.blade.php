@@ -1,23 +1,9 @@
-@php
-    $chatGPT = \App\Models\Utility::settings('enable_chatgpt');
-    $enable_chatgpt = !empty($chatGPT);
-@endphp
-{{ Form::open(array('url' => 'product-category','class'=>'needs-validation','novalidate')) }}
+{{ Form::open(array('url' => 'product-category', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
     <div class="row">
-        @if ($enable_chatgpt)
-        <div>
-            <a href="#" data-size="md" data-ajax-popup-over="true" data-url="{{ route('generate', ['category']) }}"
-                data-bs-toggle="tooltip" data-bs-placement="top" title="{{ __('Generate') }}"
-                data-title="{{ __('Generate content with AI') }}" class="btn btn-primary btn-sm float-end">
-                <i class="fas fa-robot"></i>
-                {{__('Generate with AI')}}
-            </a>
-        </div>
-        @endif
         <div class="form-group col-md-12">
-            {{ Form::label('name', __('Category Name'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::text('name', '', ['class' => 'form-control', 'required' => 'required', 'placeholder'=>__('Enter Category Name')]) }}
+            {{ Form::label('name', __('Category Name'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::text('name', '', array('class' => 'form-control','required'=>'required' , 'placeholder'=>__('Enter Category Name'))) }}
         </div>
         <div class="form-group col-md-12 d-block">
             {{ Form::label('type', __('Category Type'),['class'=>'form-label']) }}<x-required></x-required>
@@ -25,22 +11,23 @@
         </div>
         <div class="form-group col-md-12 account d-none">
             {{Form::label('chart_account_id',__('Account'),['class'=>'form-label'])}}
-            <select class="form-control select" name="chart_account" id="chart_account"></select>
+            <select class="form-control select" name="chart_account" id="chart_account">
+            </select>
         </div>
+
         <div class="form-group col-md-12">
-            {{ Form::label('color', __('Category Color'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::color('color', '', ['class' => 'form-control jscolor', 'required' => 'required']) }}
-            <small>{{ __('For chart representation') }}</small>
+            {{ Form::label('color', __('Category Color'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::text('color', '', array('class' => 'form-control jscolor','required'=>'required')) }}
+            <small>{{__('For chart representation')}}</small>
         </div>
 
     </div>
 </div>
 <div class="modal-footer">
-    <input type="button" value="{{__('Cancel')}}" class="btn  btn-light" data-bs-dismiss="modal">
+    <input type="button" value="{{__('Cancel')}}" class="btn  btn-secondary" data-bs-dismiss="modal">
     <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
 </div>
 {{ Form::close() }}
-
 
 
 <script>

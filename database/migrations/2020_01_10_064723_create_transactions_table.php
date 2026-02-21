@@ -19,8 +19,8 @@ class CreateTransactionsTable extends Migration
             $table->integer('user_id');
             $table->string('user_type');
             $table->integer('account');
-            $table->string('type');
-            $table->decimal('amount', 15, 2)->default('0.00');
+            $table->string('type')->nullable();
+            $table->decimal('amount', 16, 2)->default('0.0');
             $table->text('description')->nullable();
             $table->date('date');
             $table->integer('created_by')->default('0');

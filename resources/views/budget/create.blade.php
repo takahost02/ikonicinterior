@@ -5,6 +5,7 @@
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
     <li class="breadcrumb-item"><a href="{{route('budget.index')}}">{{__('Budget Planner')}}</a></li>
+    <li class="breadcrumb-item">{{__('Budget Create')}}</li>
 @endsection
 @push('script-page')
     <script src="{{asset('js/jquery-ui.min.js')}}"></script>
@@ -35,7 +36,6 @@
 
             //all total //
             var total_inputs = $(el.parent().find('.totalIncome'));
-            console.log(total_inputs)
             var income = 0;
             for (var i = 0; i < total_inputs.length; i++) {
                 var price = $(total_inputs[i]).html();
@@ -59,7 +59,7 @@
             }
             el.find('.totalExpense').html(totalexpense);
 
-           // month wise total //
+            // month wise total //
             var month_expense = $(this).data('month');
             var month_inputs = $(el.parent().find('.' + month_expense+'_expense'));
             var month_totalexpense = 0;
@@ -72,7 +72,6 @@
 
             //all total //
             var total_inputs = $(el.parent().find('.totalExpense'));
-            console.log(total_inputs)
             var expense = 0;
             for (var i = 0; i < total_inputs.length; i++) {
                 var price = $(total_inputs[i]).html();
@@ -86,10 +85,10 @@
         $(document).on('change', '.period', function() {
             var period = $(this).val();
 
-        $('.budget_plan').removeClass('d-block');
-        $('.budget_plan').addClass('d-none');
-        $('#'+ period).removeClass('d-none');
-        $('#'+ period).addClass('d-block');
+            $('.budget_plan').removeClass('d-block');
+            $('.budget_plan').addClass('d-none');
+            $('#'+ period).removeClass('d-none');
+            $('#'+ period).addClass('d-block');
 
 
 
@@ -105,21 +104,21 @@
 
     <div class="card bg-none card-box mt-3">
         <div class="card-body">
-            {{ Form::open(array('url' => 'budget','class'=>'w-100 needs-validation','novalidate')) }}
-            <div class="row">
+            {{ Form::open(array('url' => 'budget','class'=>'w-100', 'class'=>'needs-validation', 'novalidate')) }}
+            <div class="row row-gap-1">
 
-                <div class="form-group col-md-4">
+                <div class="form-group col-md-4 mb-0">
                     {{ Form::label('name', __('Name'),['class'=>'form-label']) }}<x-required></x-required>
-                    {{ Form::text('name',null, array('class' => 'form-control','required'=>'required', 'placeholder'=>__('Enter Name'))) }}
+                    {{ Form::text('name',null, array('class' => 'form-control','required'=>'required' , 'placeholder' => __('Enter Name'))) }}
                 </div>
 
-                <div class="form-group col-md-4">
+                <div class="form-group col-md-4 mb-0">
                     {{ Form::label('period', __('Budget Period'),['class'=>'form-label']) }}<x-required></x-required>
                     {{ Form::select('period', $periods,null, array('class' => 'form-control select period','required'=>'required')) }}
 
                 </div>
 
-                <div class="form-group  col-md-4">
+                <div class="form-group  col-md-4 mb-0">
                     <div class="btn-box">
                         {{ Form::label('year', __('Year'),['class'=>'form-label']) }}
                         {{ Form::select('year',$yearList,isset($_GET['year'])?$_GET['year']:'', array('class' => 'form-control select')) }}
@@ -141,7 +140,7 @@
                         <tr>
                             <th>{{__('Category')}}</th>
                             @foreach($monthList as $month)
-                                <td class="total text-dark">{{__($month)}}</td>
+                                <td class="total text-dark">{{$month}}</td>
                             @endforeach
                             <th>{{__('Total :')}}</th>
                         </tr>
@@ -155,11 +154,11 @@
                         @foreach ($incomeproduct as $productService)
                             <tr>
                                 <td>{{$productService->name}}</td>
-                                    @foreach($monthList as $month)
+                                @foreach($monthList as $month)
                                     <td>
                                         <input type="number" class="form-control pl-1 pr-1 income_data {{$month}}_income" data-month="{{$month}}" name="income[{{$productService->id}}][{{$month}}]" value="0" id="income_data_{{$month}}">
                                     </td>
-                                    @endforeach
+                                @endforeach
                                 <td class="totalIncome text-dark">
                                     0.00
                                 </td>
@@ -216,8 +215,8 @@
                     </table>
 
                     <div class="modal-footer budget">
-                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-light">
-                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary" >
+                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-secondary">
+                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
                     </div>
 
                 </div>
@@ -309,8 +308,8 @@
 
                     </table>
                     <div class="modal-footer budget">
-                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-light">
-                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary" >
+                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-secondary">
+                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
                     </div>
                 </div>
 
@@ -398,8 +397,8 @@
 
                     </table>
                     <div class="modal-footer budget">
-                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-light">
-                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary" >
+                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-secondary">
+                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
                     </div>
                 </div>
 
@@ -488,9 +487,9 @@
 
                     </table>
                     <div class="modal-footer budget">
-                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-light">
-                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary" >
-                </div>
+                        <input type="button" value="{{__('Cancel')}}" onclick="location.href = '{{route("budget.index")}}';" class="btn btn-secondary">
+                        <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
+                    </div>
                 </div>
 
                 <!---End Yearly Budget ----->

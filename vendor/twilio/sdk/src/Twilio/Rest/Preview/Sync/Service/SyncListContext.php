@@ -19,7 +19,6 @@ namespace Twilio\Rest\Preview\Sync\Service;
 
 use Twilio\Exceptions\TwilioException;
 use Twilio\ListResource;
-use Twilio\Values;
 use Twilio\Version;
 use Twilio\InstanceContext;
 use Twilio\Rest\Preview\Sync\Service\SyncList\SyncListPermissionList;
@@ -73,8 +72,7 @@ class SyncListContext extends InstanceContext
     public function delete(): bool
     {
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        return $this->version->delete('DELETE', $this->uri, [], [], $headers);
+        return $this->version->delete('DELETE', $this->uri);
     }
 
 
@@ -87,8 +85,7 @@ class SyncListContext extends InstanceContext
     public function fetch(): SyncListInstance
     {
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->fetch('GET', $this->uri, [], [], $headers);
+        $payload = $this->version->fetch('GET', $this->uri, [], []);
 
         return new SyncListInstance(
             $this->version,

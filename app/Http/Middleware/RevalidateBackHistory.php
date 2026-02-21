@@ -23,6 +23,5 @@ class RevalidateBackHistory
 
         
         return $response;
-
     }
 }

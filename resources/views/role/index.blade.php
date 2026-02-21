@@ -1,20 +1,19 @@
 @extends('layouts.admin')
 @section('page-title')
-    {{__('Manage Roles')}}
+    {{ __('Manage Role') }}
 @endsection
+@push('script-page')
+@endpush
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
-    <li class="breadcrumb-item">{{__('Role')}}</li>
+    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item">{{ __('Role') }}</li>
 @endsection
-
-
 @section('action-btn')
-    <div class="d-flex">
-        @can('create role')
-            <a href="#" data-size="xl" data-url="{{ route('roles.create') }}" data-ajax-popup="true"  data-bs-toggle="tooltip" title="{{__('Create Role')}}" class="btn btn-sm btn-primary">
-                <i class="ti ti-plus"></i>
-            </a>
-        @endcan
+    <div class="float-end">
+        <a href="#" data-size="lg" data-url="{{ route('roles.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip"
+            title="{{ __('Create New Role') }}" class="btn btn-sm btn-primary">
+            <i class="ti ti-plus"></i>
+        </a>
     </div>
 @endsection
 
@@ -23,48 +22,66 @@
         <div class="col-xl-12">
             <div class="card">
                 <div class="card-body table-border-style">
-                    <h5></h5>
                     <div class="table-responsive">
                         <table class="table datatable">
                             <thead>
-                            <tr>
-                                <th>{{__('Role')}} </th>
-                                <th>{{__('Permissions')}} </th>
-                                <th width="150">{{__('Action')}} </th>
-                            </tr>
+                                <tr>
+                                    <th>{{ __('Role') }} </th>
+                                    <th>{{ __('Permissions') }} </th>
+                                    <th width="150">{{ __('Action') }} </th>
+                                </tr>
                             </thead>
                             <tbody>
-                            @foreach ($roles as $role)
-                                <tr class="font-style">
-                                    <td class="Role">{{ $role->name }}</td>
-                                    <td class="Permission">
-                                        @for($j=0;$j<count($role->permissions()->pluck('name'));$j++)
-                                            <span class="badge rounded-pill bg-primary">{{$role->permissions()->pluck('name')[$j]}}</span>
-                                        @endfor
-                                    </td>
-                                    <td class="Action">
-                                        <span>
-                                        @can('edit role')
-                                            <div class="action-btn me-2">
-                                                <a href="#" class="mx-3 btn btn-sm d-inline-flex align-items-center bg-info" data-url="{{ route('roles.edit',$role->id) }}" data-size="xl" data-ajax-popup="true" data-bs-toggle="tooltip" data-original-title="{{__('Edit Role')}}" title="{{__('Edit Role')}}">
-                                                <span><i class="ti ti-pencil text-white"></i></span>
-                                                </a>
+                                @foreach ($roles as $role)
+                                    @if ($role->name != 'client')
+                                        <tr class="font-style">
+                                            <td class="Role">{{ $role->name }}</td>
+                                            <td class="Permission">
+                                            <div class="permission-inner">
+
+                                                @foreach ($role->permissions()->pluck('name') as $permissionName)
+                                                    <span
+                                                        class="badge rounded p-2 m-1 px-3 bg-primary">{{ $permissionName }}</span>
+                                                @endforeach
                                             </div>
+                                            </td>
+                                            <td class="Action">
+                                                <span>
+                                                    @can('edit role')
+                                                        <div class="action-btn me-2">
+                                                            <a href="#"
+                                                                class="mx-3 btn btn-sm align-items-center bg-info"
+                                                                data-url="{{ route('roles.edit', $role->id) }}"
+                                                                data-ajax-popup="true" data-size="lg" data-bs-toggle="tooltip"
+                                                                title="{{ __('Edit') }}"
+                                                                data-title="{{ __('Role Edit') }}">
+                                                                <i class="ti ti-pencil text-white"></i>
+                                                            </a>
+                                                        </div>
+                                                    @endcan
 
-                                            @endcan
-                                            @can('delete role')
-                                                <div class="action-btn">
-                                                    {!! Form::open(['method' => 'DELETE', 'route' => ['roles.destroy', $role->id],'id'=>'delete-form-'.$role->id]) !!}
-                                                    <a href="#" class="mx-3 btn btn-sm  align-items-center bs-pass-para bg-danger" data-bs-toggle="tooltip" title="{{__('Delete')}}" ><i class="ti ti-trash text-white text-white"></i></a>
+                                                    @if ($role->name != 'Employee')
+                                                        @can('delete role')
+                                                            <div class="action-btn ">
+                                                                {!! Form::open([
+                                                                    'method' => 'DELETE',
+                                                                    'route' => ['roles.destroy', $role->id],
+                                                                    'id' => 'delete-form-' . $role->id,
+                                                                ]) !!}
+                                                                <a href="#"
+                                                                    class="mx-3 btn btn-sm  align-items-center bs-pass-para bg-danger"
+                                                                    data-bs-toggle="tooltip" title="{{ __('Delete') }}"><i
+                                                                        class="ti ti-trash text-white"></i></a>
+                                                                {!! Form::close() !!}
+                                                            </div>
+                                                        @endcan
+                                                    @endif
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
 
-
-                                                    {!! Form::close() !!}
-                                                 </div>
-                                            @endcan
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
                             </tbody>
                         </table>
                     </div>

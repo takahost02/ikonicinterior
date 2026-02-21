@@ -7,6 +7,7 @@ return [
         'Modules/LandingPage/Http',
         'Modules/LandingPage/Resources',
     ],
+
     // Directories to exclude from search.
     //
     // Please note, these directories should be relative to the ones listed in 'directories'.
@@ -24,9 +25,7 @@ return [
     // Indicates whether new lines are allowed in translations.
     'allow-newlines' => false,
 
-    // Translation function names or a custom transform function.
-    // Example of a custom transform function:
-    // 'transform' => fn ($s) => \strtoupper(\str_replace(["-","_"], " ", $s))
+    // Translation function names.
     // If your function name contains $ escape it using \$ .
     'functions'=> [
         '__',

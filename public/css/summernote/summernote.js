@@ -146,7 +146,7 @@ var dialog = renderer.create('<div class="modal" aria-hidden="false" tabindex="-
         '  <div class="modal-content">',
         (options.title
             ? '    <div class="modal-header">' +
-                '      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                '      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                 '      <h4 class="modal-title">' + options.title + '</h4>' +
                 '    </div>' : ''),
         '    <div class="modal-body">' + options.body + '</div>',
@@ -7088,7 +7088,14 @@ $$1.summernote = $$1.extend($$1.summernote, {
         // popover
         popatmouse: true,
         popover: {
-
+            image: [
+                ['imagesize', ['imageSize100', 'imageSize50', 'imageSize25']],
+                ['float', ['floatLeft', 'floatRight', 'floatNone']],
+                ['remove', ['removeMedia']]
+            ],
+            link: [
+                ['link', ['linkDialogShow', 'unlink']]
+            ],
             table: [
                 ['add', ['addRowDown', 'addRowUp', 'addColLeft', 'addColRight']],
                 ['delete', ['deleteRow', 'deleteCol', 'deleteTable']]

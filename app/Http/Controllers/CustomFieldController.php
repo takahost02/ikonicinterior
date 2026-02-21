@@ -50,7 +50,7 @@ class CustomFieldController extends Controller
 
             $validator = \Validator::make(
                 $request->all(), [
-                                   'name' => 'required|max:20',
+                                   'name' => 'required|max:40',
                                    'type' => 'required',
                                    'module' => 'required',
                                ]
@@ -60,7 +60,7 @@ class CustomFieldController extends Controller
             {
                 $messages = $validator->getMessageBag();
 
-                return redirect()->back()->with('error', $messages->first());
+                return redirect()->route('custom-field.index')->with('error', $messages->first());
             }
 
             $custom_field             = new CustomField();
@@ -70,7 +70,7 @@ class CustomFieldController extends Controller
             $custom_field->created_by = \Auth::user()->creatorId();
             $custom_field->save();
 
-            return redirect()->back()->with('success', __('Custom Field successfully created!'));
+            return redirect()->route('custom-field.index')->with('success', __('Custom Field successfully created!'));
         }
         else
         {
@@ -81,7 +81,7 @@ class CustomFieldController extends Controller
 
     public function show(CustomField $customField)
     {
-        return redirect()->route('customFields.index');
+        return redirect()->route('custom-field.index');
     }
 
     public function edit(CustomField $customField)
@@ -117,7 +117,7 @@ class CustomFieldController extends Controller
 
                 $validator = \Validator::make(
                     $request->all(), [
-                                       'name' => 'required|max:20',
+                                       'name' => 'required|max:40',
                                    ]
                 );
 
@@ -131,7 +131,7 @@ class CustomFieldController extends Controller
                 $customField->name = $request->name;
                 $customField->save();
 
-                return redirect()->back()->with('success', __('Custom Field successfully updated!'));
+                return redirect()->route('custom-field.index')->with('success', __('Custom Field successfully updated!'));
             }
             else
             {

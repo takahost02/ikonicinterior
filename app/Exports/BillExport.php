@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Bill;
-use App\Models\Vender;
+use App\Models\ProductServiceCategory;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -14,57 +14,30 @@ class BillExport implements FromCollection, WithHeadings
      */
     public function collection()
     {
-        $data = [];
+        $data = Bill::where('created_by', \Auth::user()->creatorId())->get();
 
-        if (!\Auth::guard('vender')->check()) {
-            $data = Bill::where('created_by', \Auth::user()->id)->get();
-        } else {
-            $data = Bill::where('vender_id', '=', \Auth::guard('vender')->check())->where('status', '!=', '0')->get();
+        foreach($data as $k => $bill)
+        {
+            unset( $bill->id,$bill->vender_id,$bill->created_by, $bill->shipping_display,$bill->discount_apply,$bill->created_at,$bill->updated_at);
+            $data[$k]["bill_id"] = \Auth::user()->billNumberFormat($bill->bill_id);
+            $data[$k]['category_id'] = ProductServiceCategory::where('type', 'expense')->first()->name;
+            $data[$k]["status"]       = Bill::$statues[$bill->status];
         }
-
-        foreach ($data as $k => $Bill) {
-
-            $venders  = Bill::vendor($Bill->vender_id);
-            $category  = Bill::ProposalCategory($Bill->category_id);
-            if ($Bill->status == 0) {
-                $status = 'Draft';
-            } elseif ($Bill->status == 1) {
-                $status = 'Sent';
-            } elseif ($Bill->status == 2) {
-                $status = 'Unpaid';
-            } elseif ($Bill->status == 3) {
-                $status = 'Partialy Paid';
-            } elseif ($Bill->status == 4) {
-                $status = 'Paid';
-            }
-            unset($Bill->discount_apply, $Bill->shipping_display, $Bill->id, $Bill->created_by, $Bill->updated_at, $Bill->created_at);
-            if(!\Auth::guard('vender')->check())
-            {
-                $data[$k]["bill_id"] = \Auth::user()->billNumberFormat($Bill->bill_id);
-            }
-            else{
-                $data[$k]["bill_id"] = Vender::billNumberFormat($Bill->bill_id);
-            }
-            $data[$k]["vender_id"]          = $venders;
-            $data[$k]["category_id"]   = $category;
-            $data[$k]["status"]          = $status;
-        }
-
         return $data;
     }
 
     public function headings(): array
     {
         return [
-            "Bill Id",
-            "Vender Name",
+            "Bill No",
             "Bill Date",
             "Due Date",
-            "Order Number",
-            "status",
+            "Order No",
+            "Status",
+            "Type",
+            "User Type",
             "Send Date",
-            "category Name",
-
+            "Category"
         ];
     }
 }

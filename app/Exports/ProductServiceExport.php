@@ -8,47 +8,26 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ProductServiceExport implements FromCollection, WithHeadings
 {
+
     public function collection()
     {
-        $data = [];
 
-        if(\Auth::user()->type =='company')
+        $data = ProductService::select('product_services.name as item',  'sku', 'sale_price', 'purchase_price', 'product_services.quantity', 'tax_id as tax', 'product_service_categories.name as category', 'product_service_units.name as unit', 'product_services.type', 'description');
+//        $data->leftjoin('venders', 'product_services.assign_vendor', '=', 'venders.id');
+        $data->leftjoin('product_service_categories', 'product_services.category_id', '=', 'product_service_categories.id');
+        $data->leftjoin('product_service_units', 'product_services.unit_id', '=', 'product_service_units.id');
+        $data= $data->where('product_services.created_by', \Auth::user()->creatorId())->get();
+        foreach($data as $k => $item)
         {
-            $data = ProductService::where('created_by' , \Auth::user()->id)->get();
+            $taxes                      = ProductService::taxData($item->tax);
+            $data[$k]["sale_price"]     = \Auth::user()->priceFormat($item->sale_price);
+            $data[$k]["purchase_price"] = \Auth::user()->priceFormat($item->purchase_price);
+            $data[$k]["tax"]            = $taxes;
+//            $data[$k]["stock_status"]   = ProductService::$stockStatus[$item->stock_status];
+//            $data[$k]["image"]          = asset(\Storage::url('uploads/product')) . '/' . $item->image;
         }
-        else{
-            $data = ProductService::get();
-        } 
-        
-        if (!empty($data)) {
-            foreach ($data as $k => $ProductService) {
-                $taxNames = [];
-                $taxIds = explode(',', $ProductService->tax_id);
-                foreach ($taxIds as $taxId) {
-                    $taxName = ProductService::Taxe($taxId); // Use your existing method
-                    if (!empty($taxName)) {
-                        $taxNames[] = $taxName;
-                    }
-                }
-    
-                $unit = ProductService::productserviceunit($ProductService->unit_id);
-                $category = ProductService::productcategory($ProductService->category_id);
-    
-                unset(
-                    $ProductService->id,
-                    $ProductService->created_by,
-                    $ProductService->updated_at,
-                    $ProductService->created_at,
-                    $ProductService->sale_chartaccount_id,
-                    $ProductService->expense_chartaccount_id
-                );
-    
-                // Assign readable values
-                $data[$k]["tax_id"] = implode(', ', $taxNames);
-                $data[$k]["unit_id"] = $unit;
-                $data[$k]["category_id"] = $category;
-            }
-        }
+
+
         return $data;
     }
 
@@ -57,8 +36,8 @@ class ProductServiceExport implements FromCollection, WithHeadings
         return [
             "Name",
             "SKU",
-            "Sale Price",
-            "Purchase Price",
+            "sale_price",
+            "purchase_price",
             "Quantity",
             "Tax",
             "Category",

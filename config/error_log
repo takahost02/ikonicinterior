@@ -1,0 +1,12 @@
+[05-Feb-2026 08:41:04 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/ikonicinterior/accounts.ikonicinterior.com/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/ikonicinterior/accounts.ikonicinterior.com/config/mail.php on line 17
+[05-Feb-2026 08:41:17 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/ikonicinterior/accounts.ikonicinterior.com/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/ikonicinterior/accounts.ikonicinterior.com/config/services.php on line 18
+[05-Feb-2026 08:41:21 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/ikonicinterior/accounts.ikonicinterior.com/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/ikonicinterior/accounts.ikonicinterior.com/config/database.php on line 19

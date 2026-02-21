@@ -17,7 +17,7 @@ class AccountStatementExport implements FromCollection, WithHeadings
         $data = Revenue::where('created_by' , \Auth::user()->id)->get();
         if (!empty($data)) {
             foreach ($data as $k => $Statement) {
-                unset($Statement->created_by, $Statement->updated_at, $Statement->created_at,$Statement->account_id, $Statement->customer_id,$Statement->category_id,
+                unset($Statement->id,$Statement->created_by, $Statement->updated_at, $Statement->created_at,$Statement->account_id, $Statement->customer_id,$Statement->category_id,
                 $Statement->payment_method, $Statement->reference, $Statement->add_receipt);
             }
         }
@@ -27,7 +27,6 @@ class AccountStatementExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
-            "Statement Id",
             "Date",
             "Amount",
             "Description",

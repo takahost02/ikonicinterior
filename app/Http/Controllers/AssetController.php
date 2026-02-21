@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 
 class AssetController extends Controller
@@ -26,8 +27,9 @@ class AssetController extends Controller
     {
         if(\Auth::user()->can('create assets'))
         {
+            $employee      = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'user_id');
 
-            return view('assets.create');
+            return view('assets.create',compact('employee'));
         }
         else
         {
@@ -56,6 +58,7 @@ class AssetController extends Controller
             }
 
             $assets                 = new Asset();
+            $assets->employee_id         = !empty($request->employee_id) ? implode(',', $request->employee_id) : '';
             $assets->name           = $request->name;
             $assets->purchase_date  = $request->purchase_date;
             $assets->supported_date = $request->supported_date;
@@ -84,8 +87,12 @@ class AssetController extends Controller
         if(\Auth::user()->can('edit assets'))
         {
             $asset = Asset::find($id);
+            $employee      = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $asset->employee_id      = explode(',', $asset->employee_id);
 
-            return view('assets.edit', compact('asset'));
+
+
+            return view('assets.edit', compact('asset','employee'));
         }
         else
         {
@@ -115,8 +122,10 @@ class AssetController extends Controller
 
                     return redirect()->back()->with('error', $messages->first());
                 }
-           
+
                 $asset->name           = $request->name;
+                $asset->employee_id         = !empty($request->employee_id) ? implode(',', $request->employee_id) : '';
+
                 $asset->purchase_date  = $request->purchase_date;
                 $asset->supported_date = $request->supported_date;
                 $asset->amount         = $request->amount;

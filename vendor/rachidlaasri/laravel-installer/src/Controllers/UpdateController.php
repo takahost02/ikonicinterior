@@ -30,7 +30,10 @@ class UpdateController extends Controller
         $migrations = $this->getMigrations();
         $dbMigrations = $this->getExecutedMigrations();
 
-        return view('vendor.installer.update.overview', ['numberOfUpdatesPending' => count($migrations) - count($dbMigrations)]);
+        $Modulemigrations = glob(base_path().'/Modules/LandingPage/Database'.DIRECTORY_SEPARATOR.'Migrations'.DIRECTORY_SEPARATOR.'*.php');
+        $numberOfUpdatesPending = (count($migrations)  + count($Modulemigrations)) - count($dbMigrations);
+
+        return view('vendor.installer.update.overview', ['numberOfUpdatesPending' => $numberOfUpdatesPending]);
     }
 
     /**

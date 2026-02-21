@@ -1,76 +1,63 @@
-{{ Form::model($payment, array('route' => array('payment.update', $payment->id), 'method' => 'PUT','enctype' => 'multipart/form-data','class'=>'needs-validation','novalidate')) }}
+{{ Form::model($payment, array('route' => array('payment.update', $payment->id), 'method' => 'PUT','enctype' => 'multipart/form-data', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
     <div class="row">
-        <div class="form-group  col-md-6">
-            {{ Form::label('date', __('Date'),['class'=>'form-label']) }}<x-required></x-required>
-            <div class="form-icon-user">
-                {{Form::date('date',null,array('class'=>'form-control','required'=>'required'))}}
-
-            </div>
-        </div>
-        <div class="form-group  col-md-6">
-            {{ Form::label('amount', __('Amount'),['class'=>'form-label']) }}<x-required></x-required>
-            <div class="form-icon-user">
-                {{ Form::number('amount', null, array('class' => 'form-control','required'=>'required','step'=>'0.01', 'placeholder'=>__('Enter Amount'))) }}
-            </div>
-        </div>
-        <div class="form-group  col-md-6">
-            {{ Form::label('account_id', __('Account'),['class'=>'form-label']) }}<x-required></x-required>
-            {{ Form::select('account_id',$accounts,null, array('class' => 'form-control select','required'=>'required')) }}
-            <div class="text-xs mt-1">
-                {{ __('Create account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create account') }}</b></a>
-            </div>
-        </div>
-        <div class="form-group  col-md-6">
+        <div class="form-group col-md-6">
             {{ Form::label('vender_id', __('Vendor'),['class'=>'form-label']) }}<x-required></x-required>
             {{ Form::select('vender_id', $venders,null, array('class' => 'form-control select','required'=>'required')) }}
             <div class="text-xs mt-1">
-                {{ __('Create vendor here.') }} <a href="{{ route('vender.index') }}"><b>{{ __('Create vendor') }}</b></a>
+                {{ __('Create vender here.') }} <a href="{{ route('vender.index') }}"><b>{{ __('Create vender') }}</b></a>
             </div>
         </div>
-        <div class="form-group  col-md-12">
-            {{ Form::label('description', __('Description'),['class'=>'form-label']) }}
-            {{ Form::textarea('description', null, array('class' => 'form-control','rows'=>3, 'placeholder'=>__('Enter Description'))) }}
+        <div class="form-group col-md-6">
+            {{ Form::label('date', __('Date'),['class'=>'form-label']) }}<x-required></x-required>
+            {{Form::date('date',null,array('class'=>'form-control','required'=>'required'))}}
         </div>
-        <div class="form-group  col-md-6">
+        <div class="form-group col-md-6">
+            {{ Form::label('amount', __('Amount'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::number('amount', null, array('class' => 'form-control','required'=>'required','step'=>'0.01', 'placeholder'=>__('Enter Amount'))) }}
+        </div>
+        <div class="form-group col-md-6">
             {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
             {{ Form::select('category_id', $categories,null, array('class' => 'form-control select','required'=>'required')) }}
             <div class="text-xs mt-1">
                 {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
             </div>
         </div>
-        <div class="form-group  col-md-6">
-            {{ Form::label('reference', __('Reference'),['class'=>'form-label']) }}
-            <div class="form-icon-user">
-                {{ Form::text('reference', null, array('class' => 'form-control', 'placeholder'=>__('Enter Reference'))) }}
+        <div class="form-group col-md-6">
+            {{ Form::label('account_id', __('Account'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::select('account_id',$accounts,null, array('class' => 'form-control select','required'=>'required')) }}
+            <div class="text-xs mt-1">
+                {{ __('Create account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create account') }}</b></a>
             </div>
         </div>
-
-        <div class="col-md-6">
-            {{Form::label('add_receipt',__('Payment Receipt'),['class'=>'form-label'])}}
-            <div class="choose-file form-group">
-                <input type="file" class="form-control file-validate" name="add_receipt" id="files" data-filename="upload_file">
-                <span id="" class="file-error text-danger"></span>
-                @if (isset($payment->add_receipt))
-                <img id="image" class="mt-2 border border-primary" src="{{asset(Storage::url('uploads/payment/'.$payment->add_receipt))}}" width="120" height="120" />
-                @else
-                <img id="image" class="mt-2 border border-primary" src="{{asset(Storage::url('uploads/defualt/defualt.png'))}}" width="120" height="120" />
-                @endif
-            </div>
+        <div class="form-group col-md-6">
+            {{ Form::label('reference', __('Reference'),['class'=>'form-label']) }}
+            {{ Form::text('reference', null, array('class' => 'form-control', 'placeholder'=>__('Enter Reference'))) }}
+        </div>
+        <div class="form-group col-md-6">
+            {{Form::label('add_receipt',__('Payment Receipt'),['class' => 'form-label'])}}
+            {{Form::file('add_receipt',array('class'=>'form-control', 'id'=>'files'))}}
+            <img id="image" class="mt-2" src="{{asset(Storage::url('uploads/payment')).'/'.$payment->add_receipt}}" style="width:25%;"/>
+        </div>
+        <div class="form-group  col-md-12">
+            {{ Form::label('description', __('Description'),['class'=>'form-label']) }}
+            {{ Form::textarea('description', null, array('class' => 'form-control','rows'=>3, 'placeholder'=>__('Enter Description'))) }}
         </div>
 
     </div>
 </div>
 
 <div class="modal-footer">
-    <input type="button" value="{{__('Cancel')}}" class="btn  btn-light" data-bs-dismiss="modal">
-    <input type="submit" value="{{__('Update')}}" class="btn  btn-primary">
+    <input type="button" value="{{__('Cancel')}}" class="btn btn-secondary" data-bs-dismiss="modal">
+    <input type="submit" value="{{__('Update')}}" class="btn btn-primary">
 </div>
 {{ Form::close() }}
 
+
 <script>
-    document.getElementById('files').onchange = function() {
+    document.getElementById('files').onchange = function () {
         var src = URL.createObjectURL(this.files[0])
         document.getElementById('image').src = src
     }
 </script>
+

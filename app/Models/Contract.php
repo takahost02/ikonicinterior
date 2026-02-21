@@ -2,42 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Contract extends Model
 {
     protected $fillable = [
-        'customer',
+        'client_name',
         'subject',
         'value',
         'type',
         'start_date',
         'end_date',
-        'edit_status',
         'description',
-        'customer_signature',
+        'status',
+        'contract_description',
         'company_signature',
+        'client_signature',
         'created_by',
     ];
 
+    public static function status()
+    {
+
+        $status = [
+            'accept' => 'Accept',
+            'decline' => 'Decline',
+
+        ];
+        return $status;
+    }
+
     public function clients()
     {
-        return $this->hasOne('App\Models\Customer', 'id', 'customer');
+        return $this->hasOne('App\Models\User', 'id', 'client_name');
     }
+
     public function types()
     {
         return $this->hasOne('App\Models\ContractType', 'id', 'type');
-    }
-    public static function editstatus()
-    {
-
-        $editstatus = [
-            'accept' => 'Accept',
-            'decline' => 'Decline',
-           
-        ];
-        return $editstatus;
     }
     public static function getContractSummary($contracts)
     {
@@ -50,24 +52,31 @@ class Contract extends Model
 
         return \Auth::user()->priceFormat($total);
     }
+
+    public function projects()
+    {
+        return $this->hasOne('App\Models\Project', 'id', 'project_id');
+    }
     public function files()
     {
-        return $this->hasMany('App\Models\ContractAttachment', 'contract_id' , 'id');
+        return $this->hasMany('App\Models\Contract_attachment', 'contract_id' , 'id');
     }
-
+    public function notes()
+    {
+        return $this->hasMany('App\Models\ContractNotes', 'contract_id' , 'id');
+    }
     public function comment()
     {
         return $this->hasMany('App\Models\ContractComment', 'contract_id', 'id');
     }
-
     public function note()
     {
-        return $this->hasMany('App\Models\ContractNote', 'contract_id', 'id');
+        return $this->hasMany('App\Models\ContractNotes', 'contract_id', 'id');
     }
 
-    public function ContractAttachment()
+    public function ContractAttechment()
     {
-        return $this->belongsTo('App\Models\ContractAttachment', 'id', 'contract_id');
+        return $this->belongsTo('App\Models\Contract_attachment', 'id', 'contract_id');
     }
 
     public function ContractComment()
@@ -77,6 +86,7 @@ class Contract extends Model
 
     public function ContractNote()
     {
-        return $this->belongsTo('App\Models\ContractNote', 'id', 'contract_id');
+        return $this->belongsTo('App\Models\ContractNotes', 'id', 'contract_id');
     }
+
 }

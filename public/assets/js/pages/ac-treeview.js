@@ -7,12 +7,10 @@ const tree = new VanillaTree(main, {
     contextmenu: [{
         label: 'Hey',
         action: function (id) {
-            alert('Hey ' + id);
         }
     }, {
         label: 'Blah',
         action: function (id) {
-            alert('Blah ' + id);
         }
     }]
 });

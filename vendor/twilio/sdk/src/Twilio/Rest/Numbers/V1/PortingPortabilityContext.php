@@ -30,7 +30,7 @@ class PortingPortabilityContext extends InstanceContext
      * Initialize the PortingPortabilityContext
      *
      * @param Version $version Version that contains the resource
-     * @param string $phoneNumber Phone number to check portability in e164 format.
+     * @param string $phoneNumber The phone number which portability is to be checked. Phone numbers are in E.164 format (e.g. +16175551212).
      */
     public function __construct(
         Version $version,
@@ -65,8 +65,7 @@ class PortingPortabilityContext extends InstanceContext
                 $options['targetAccountSid'],
         ]);
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->fetch('GET', $this->uri, $params, [], $headers);
+        $payload = $this->version->fetch('GET', $this->uri, $params, []);
 
         return new PortingPortabilityInstance(
             $this->version,

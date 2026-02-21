@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Validator;
 use Auth;
 
 class RoleController extends Controller
@@ -16,6 +15,7 @@ class RoleController extends Controller
     {
         if(\Auth::user()->can('manage role'))
         {
+
             $roles = Role::where('created_by', '=', \Auth::user()->creatorId())->where('created_by', '=', \Auth::user()->creatorId())->get();
 
             return view('role.index')->with('roles', $roles);
@@ -61,11 +61,11 @@ class RoleController extends Controller
     {
         if(\Auth::user()->can('create role'))
         {
-            $validator = Validator::make(
+            $validator = \Validator::make(
                 $request->all(), [
                                    'name' => 'required|max:100|unique:roles,name,NULL,id,created_by,' . \Auth::user()->creatorId(),
                                    'permissions' => 'required',
-                                ]
+                               ]
             );
 
             if($validator->fails())
@@ -88,14 +88,12 @@ class RoleController extends Controller
                 $role->givePermissionTo($p);
             }
 
-            return redirect()->back()->with('success', __('Role successfully created.'));
+            return redirect()->route('roles.index')->with('success' , 'Role successfully created.', 'Role ' . $role->name . ' added!');
         }
         else
         {
             return redirect()->back()->with('error', 'Permission denied.');
         }
-
-
     }
 
     public function edit(Role $role)
@@ -130,9 +128,10 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+
         if(\Auth::user()->can('edit role'))
         {
-            $validator = Validator::make(
+            $validator = \Validator::make(
                 $request->all(), [
                                    'name' => 'required|max:100|unique:roles,name,' . $role['id'] . ',id,created_by,' . \Auth::user()->creatorId(),
                                    'permissions' => 'required',
@@ -158,12 +157,12 @@ class RoleController extends Controller
 
             foreach($permissions as $permission)
             {
+
                 $p = Permission::where('id', '=', $permission)->firstOrFail();
                 $role->givePermissionTo($p);
             }
 
-            return redirect()->back()->with('success', __('Role successfully updated.'));
-
+            return redirect()->route('roles.index')->with('success' , 'Role successfully updated.', 'Role ' . $role->name . ' updated!');
         }
         else
         {
@@ -179,15 +178,11 @@ class RoleController extends Controller
         {
             $role->delete();
 
-            return redirect()->route('roles.index')->with(
-                'success', 'Role successfully deleted.'
-            );
+            return redirect()->route('roles.index')->with('success', __('Role successfully deleted.'));
         }
         else
         {
             return redirect()->back()->with('error', 'Permission denied.');
         }
-
-
     }
 }

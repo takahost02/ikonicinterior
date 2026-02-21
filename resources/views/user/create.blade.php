@@ -1,4 +1,4 @@
-{{ Form::open(['url' => 'users', 'method' => 'post','class'=>'needs-validation','novalidate']) }}
+{{ Form::open(['url' => 'users', 'method' => 'post', 'class'=>'needs-validation', 'novalidate']) }}
 <div class="modal-body">
     <div class="row">
         @if (\Auth::user()->type == 'super admin')
@@ -25,6 +25,7 @@
                 </div>
             </div>
 
+
             {!! Form::hidden('role', 'company', null, ['class' => 'form-control select2', 'required' => 'required']) !!}
             <div class="col-md-6 mb-3 form-group mt-4">
                 <label for="password_switch">{{ __('Login is enable') }}</label>
@@ -36,7 +37,7 @@
             <div class="col-md-6 ps_div d-none">
                 <div class="form-group">
                     {{ Form::label('password', __('Password'), ['class' => 'form-label']) }}<x-required></x-required>
-                    {{ Form::password('password', ['class' => 'form-control', 'placeholder' => __('Enter Company Password'), 'minlength' => '6', 'required' => 'required']) }}
+                    {{ Form::password('password', ['class' => 'form-control', 'placeholder' => __('Enter Company Password'), 'minlength' => '6']) }}
                     @error('password')
                         <small class="invalid-password" role="alert">
                             <strong class="text-danger">{{ $message }}</strong>
@@ -59,7 +60,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     {{ Form::label('email', __('Email'), ['class' => 'form-label']) }}<x-required></x-required>
-                    {{ Form::text('email', null, ['class' => 'form-control', 'placeholder' => __('Enter User Email'), 'required' => 'required']) }}
+                    {{ Form::email('email', null, ['class' => 'form-control', 'placeholder' => __('Enter User Email'), 'required' => 'required']) }}
                     @error('email')
                         <small class="invalid-email" role="alert">
                             <strong class="text-danger">{{ $message }}</strong>
@@ -71,7 +72,7 @@
                 {{ Form::label('role', __('User Role'), ['class' => 'form-label']) }}<x-required></x-required>
                 {!! Form::select('role', $roles, null, ['class' => 'form-control select', 'required' => 'required']) !!}
                 <div class="text-xs mt-1">
-                    {{ __('Create user role here.') }} <a href="{{ route('roles.index') }}"><b>{{ __('Create user role') }}</b></a>
+                    {{ __('Create role here.') }} <a href="{{ route('roles.index') }}"><b>{{ __('Create role') }}</b></a>
                 </div>
                 @error('role')
                     <small class="invalid-role" role="alert">
@@ -88,7 +89,7 @@
             </div>
             <div class="col-md-6 ps_div d-none">
                 <div class="form-group">
-                    {{ Form::label('password', __('Password'), ['class' => 'form-label']) }}
+                    {{ Form::label('password', __('Password'), ['class' => 'form-label']) }}<x-required></x-required>
                     {{ Form::password('password', ['class' => 'form-control', 'placeholder' => __('Enter Company Password'), 'minlength' => '6']) }}
                     @error('password')
                         <small class="invalid-password" role="alert">
@@ -99,18 +100,14 @@
             </div>
         @endif
         @if (!$customFields->isEmpty())
-            <div class="col-md-6">
-                <div class="tab-pane fade show" id="tab-2" role="tabpanel">
                     @include('customFields.formBuilder')
-                </div>
-            </div>
         @endif
     </div>
 
 </div>
 
 <div class="modal-footer">
-    <input type="button" value="{{ __('Cancel') }}" class="btn  btn-light" data-bs-dismiss="modal">
+    <input type="button" value="{{ __('Cancel') }}" class="btn  btn-secondary" data-bs-dismiss="modal">
     <input type="submit" value="{{ __('Create') }}" class="btn  btn-primary">
 </div>
 

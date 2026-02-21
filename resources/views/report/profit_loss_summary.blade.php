@@ -159,7 +159,6 @@
                                             <tr>
                                                 <td colspan="13" class="text-dark"><span>{{__('Invoice : ')}}</span></td>
                                             </tr>
-{{--                                            @dd($invoiceIncomeArray)--}}
                                             @if(!empty($invoiceIncomeArray))
                                                 @foreach($invoiceIncomeArray as $i=>$invoice)
                                                     <tr>

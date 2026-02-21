@@ -22,7 +22,7 @@ class CreateChartOfAccountTypesTable extends Migration
         }
         );
     }
-
+    
     /**
      * Reverse the migrations.
      *

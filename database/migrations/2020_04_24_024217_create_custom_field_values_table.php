@@ -18,7 +18,7 @@ class CreateCustomFieldValuesTable extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('record_id');
             $table->unsignedBigInteger('field_id');
-            $table->string('value');
+            $table->string('value')->nullable();
             $table->timestamps();
             $table->unique(
                 [

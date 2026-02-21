@@ -75,16 +75,9 @@ class TaskList extends ListResource
                 $options['attributes'],
             'VirtualStartTime' =>
                 Serialize::iso8601DateTime($options['virtualStartTime']),
-            'RoutingTarget' =>
-                $options['routingTarget'],
-            'IgnoreCapacity' =>
-                $options['ignoreCapacity'],
-            'TaskQueueSid' =>
-                $options['taskQueueSid'],
         ]);
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->create('POST', $this->uri, [], $data, $headers);
+        $payload = $this->version->create('POST', $this->uri, [], $data);
 
         return new TaskInstance(
             $this->version,
@@ -176,8 +169,6 @@ class TaskList extends ListResource
                 $options['taskQueueName'],
             'EvaluateTaskAttributes' =>
                 $options['evaluateTaskAttributes'],
-            'RoutingTarget' =>
-                $options['routingTarget'],
             'Ordering' =>
                 $options['ordering'],
             'HasAddons' =>

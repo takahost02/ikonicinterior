@@ -1,39 +1,26 @@
 <form id='form_pad' method="post" enctype="multipart/form-data">
-    @csrf
     @method('POST')
     <div class="modal-body" id="">
         <div class="row">
-
+         @csrf
             <input type="hidden" name="contract_id" value="{{$contract->id}}">
-           
-            
             <div class="form-control" >
                 <canvas id="signature-pad" class="signature-pad" height=200 ></canvas>
-                <input type="hidden" @if(Auth::user()->type == 'company')name="company_signature" @else name="customer_signature" @endif id="SignupImage1">
+                <input type="hidden" @if(Auth::user()->type == 'company')name="company_signature" @elseif(Auth::user()->type == 'client' ) name="client_signature" @endif id="SignupImage1">
             </div>
             <div class="mt-1">
-               <button type="button" class="btn-sm btn-danger" id="clearSig">{{__('Clear')}}</button>
+               <button type="button" class="btn btn-sm btn-secondary" id="clearSig">{{__('Clear')}}</button>
             </div>
 
         </div>
     </div>
     <div class="modal-footer">
-        <input type="button" value="{{__('Cancel')}}" class="btn btn-secondary btn-light" data-bs-dismiss="modal">
+        <input type="button" value="{{__('Cancel')}}" class="btn btn-secondary " data-bs-dismiss="modal">
         <input type="button" id="addSig" value="{{__('Sign')}}" class="btn btn-primary ms-2">
     </div>
 </form>
 
 <script src="{{asset('assets/js/plugins/signature_pad/signature_pad.min.js')}}"></script>
-@php
-if(\Auth::user()->type =='company')
-{
-    $route = route("signaturestore");
-}
-else
-{
-    $route = route("customer.signaturestore");
-}
-@endphp
 <script>
     var signature = {
         canvas: null,
@@ -46,9 +33,8 @@ else
             this.saveButton = document.getElementById('addSig');
                 signaturePad = new SignaturePad(this.canvas);
 
-
                 this.clearButton.addEventListener('click', function (event) {
-                
+
                     signaturePad.clear();
                 });
 
@@ -56,33 +42,23 @@ else
                     var data = signaturePad.toDataURL('image/png');
                     $('#SignupImage1').val(data);
 
-
                     $.ajax({
-                    url: '{{$route}}',
+                    url: '{{route("signaturestore")}}',
                     type: 'POST',
                     data: $("form").serialize(),
                     success: function (data) {
-                        show_toastr('success', data.message);
-                        $('#commonModal').modal('hide');
+                        location.reload();
+                        toastrs('success', data.message,'success');
+                        $("#exampleModal").modal('hide');
                     },
-                    error: function (data) {
-
-               
-                        // data = data.responseJSON;
-                        // if (data.message) {
-                        //     show_toastr('error', data.message);
-                        // } else {
-                        //     show_toastr('error', 'Some Thing Is Wrong!');
-                        // }
+                    error: function (data)
+                    {
                     }
                 });
-
-
                 });
-            
+
         }
     };
-
     signature.init();
 
 </script>

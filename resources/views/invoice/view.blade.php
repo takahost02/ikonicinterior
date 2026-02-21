@@ -2,9 +2,13 @@
 @section('page-title')
     {{ __('Invoice Detail') }}
 @endsection
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('invoice.index') }}">{{ __('Invoice') }}</a></li>
+    <li class="breadcrumb-item">{{ AUth::user()->invoiceNumberFormat($invoice->invoice_id) }}</li>
+@endsection
 @php
-    $settings_data = \App\Models\Utility::settingsById($invoice->created_by);
-    $settings = App\Models\Utility::settings();
+    $settings = Utility::settings();
 @endphp
 @push('css-page')
     <style>
@@ -56,7 +60,7 @@
                 stripe.createToken(card).then(function(result) {
                     if (result.error) {
                         $("#card-errors").html(result.error.message);
-                        show_toastr('Error', result.error.message, 'error');
+                        show_toastr('error', result.error.message, 'error');
                     } else {
                         // Send the token to your server.
                         stripeTokenHandler(result.token);
@@ -80,10 +84,11 @@
 
         @if (isset($company_payment_setting['paystack_public_key']))
             $(document).on("click", "#pay_with_paystack", function() {
+
                 $('#paystack-payment-form').ajaxForm(function(res) {
                     var amount = res.total_price;
                     if (res.flag == 1) {
-                        // var paystack_callback = "{{ url('/invoice/paystack') }}";
+                        var paystack_callback = "{{ url('/invoice/paystack') }}";
 
                         var handler = PaystackPop.setup({
                             key: '{{ $company_payment_setting['paystack_public_key'] }}',
@@ -103,15 +108,11 @@
 
                             callback: function(response) {
 
-                                window.location.href =
-                                    '{{ url('customer/invoice/paystack') }}' + '/' +
-                                    '{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}' +
-                                    '/' + amount + '/' + response.reference;
-
-                                // window.location.href = paystack_callback + '/' + response.reference + '/' + '{{ encrypt($invoice->id) }}' + '?amount=' + amount;
+                                window.location.href = paystack_callback + '/' + response
+                                    .reference + '/' + '{{ encrypt($invoice->id) }}' +
+                                    '?amount=' + amount;
                             },
                             onClose: function() {
-                                alert('window closed');
                             }
                         });
                         handler.openIframe();
@@ -125,7 +126,6 @@
             });
         @endif
 
-
         @if (isset($company_payment_setting['flutterwave_public_key']))
             //    Flaterwave Payment
             $(document).on("click", "#pay_with_flaterwave", function() {
@@ -135,7 +135,7 @@
                         var amount = res.total_price;
                         var API_publicKey = '{{ $company_payment_setting['flutterwave_public_key'] }}';
                         var nowTim = "{{ date('d-m-Y-h-i-a') }}";
-                        // var flutter_callback = "{{ url('/invoice/flaterwave') }}";
+                        var flutter_callback = "{{ url('/invoice/flaterwave') }}";
                         var x = getpaidSetup({
                             PBFPubKey: API_publicKey,
                             customer_email: '{{ Auth::user()->email }}',
@@ -154,10 +154,9 @@
                                     response.tx.chargeResponseCode == "00" ||
                                     response.tx.chargeResponseCode == "0"
                                 ) {
-                                    window.location.href =
-                                        '{{ url('customer/invoice/flaterwave') }}' + '/' +
-                                        '{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}' +
-                                        '/' + txref;
+                                    window.location.href = flutter_callback + '/' + txref +
+                                        '/' +
+                                        '{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}';
                                 } else {
                                     // redirect to a failure page.
                                 }
@@ -181,7 +180,7 @@
                 $('#razorpay-payment-form').ajaxForm(function(res) {
                     if (res.flag == 1) {
                         var amount = res.total_price;
-                        // var razorPay_callback = '{{ url('/invoice/razorpay') }}';
+                        var razorPay_callback = '{{ url('/invoice/razorpay') }}';
                         var totalAmount = res.total_price * 100;
                         var coupon_id = res.coupon;
                         var options = {
@@ -191,12 +190,10 @@
                             "currency": '{{ App\Models\Utility::getValByName('site_currency') }}',
                             "description": "",
                             "handler": function(response) {
-                                window.location.href = '{{ url('customer/invoice/razorpay') }}' +
-                                    '/' +
+                                window.location.href = razorPay_callback + '/' + response
+                                    .razorpay_payment_id + '/' +
                                     '{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}' +
-                                    '/' + amount;
-
-                                // window.location.href = razorPay_callback + '/' + response.razorpay_payment_id + '/' + '{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}' + '?amount=' + amount;
+                                    '?amount=' + amount;
                             },
                             "theme": {
                                 "color": "#528FF0"
@@ -226,92 +223,133 @@
         });
     </script>
 @endpush
-@section('breadcrumb')
-    @if (\Auth::guard('customer')->check())
-        <li class="breadcrumb-item"><a href="{{ route('customer.dashboard') }}">{{ __('Dashboard') }}</a></li>
-    @else
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
-    @endif
-    @if (\Auth::user()->type == 'company')
-        <li class="breadcrumb-item"><a href="{{ route('invoice.index') }}">{{ __('Invoice ') }}</a></li>
-    @else
-        <li class="breadcrumb-item"><a href="{{ route('customer.invoice') }}">{{ __('Invoice ') }}</a></li>
-    @endif
-    <li class="breadcrumb-item">{{ AUth::user()->invoiceNumberFormat($invoice->invoice_id) }}</li>
-@endsection
-@section('action-btn')
-    <div class="float-end">
-        <a href="#" class="btn btn-sm btn-primary  cp_link"
-            data-link="{{ route('pay.invoice', \Illuminate\Support\Facades\Crypt::encrypt($invoice->id)) }}"
-            data-bs-toggle="tooltip" title="{{ __('Copy') }}"
-            data-original-title="{{ __('Click to copy invoice link') }}">
-            <span class="btn-inner--icon text-white"><i class="ti ti-file"></i></span>
-        </a>
-    </div>
-@endsection
+
 
 @section('content')
 
     @can('send invoice')
         @if ($invoice->status != 4)
             <div class="row">
-                <div class="card ">
-                    <div class="card-body">
+                <div class="col-12">
+                    <div class="bill-timeline-card mb-4">
                         <div class="row timeline-wrapper">
-                            <div class="col-md-6 col-lg-4 col-xl-4">
-                                <div class="timeline-icons"><span class="timeline-dots"></span>
-                                    <i class="ti ti-plus text-primary"></i>
+                            <div class="col-xl-4 col-md-5 col-sm-7 create-invoice invoice">
+                                <div class="progress mb-3">
+                                    <div class="progress-value"></div>
                                 </div>
-                                <h6 class="text-primary my-3">{{ __('Create Invoice') }}</h6>
-                                <p class="text-muted text-sm mb-3"><i
-                                        class="ti ti-clock mr-2"></i>{{ __('Created on ') }}{{ \Auth::user()->dateFormat($invoice->issue_date) }}
-                                </p>
-                                @can('edit invoice')
-                                    <a href="{{ route('invoice.edit', \Crypt::encrypt($invoice->id)) }}"
-                                        class="btn btn-sm btn-primary" data-bs-toggle="tooltip"
-                                        data-original-title="{{ __('Edit') }}"><i
-                                            class="ti ti-pencil mr-2"></i>{{ __('Edit') }}</a>
-                                @endcan
+                                <div class="bill-timeline-inner d-flex gap-3">
+
+                                    <div class="timeline-icon d-flex align-items-center justify-content-center">
+                                        <svg width="19" height="18" viewBox="0 0 19 18" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <g clip-path="url(#clip0_69_767)">
+                                                <path
+                                                    d="M9.15642 18C8.92315 18 8.69942 17.9074 8.53447 17.7426C8.36952 17.5777 8.27686 17.3542 8.27686 17.1211V0.878906C8.27686 0.645806 8.36952 0.422253 8.53447 0.257426C8.69942 0.0925988 8.92315 0 9.15642 0C9.3897 0 9.61342 0.0925988 9.77837 0.257426C9.94332 0.422253 10.036 0.645806 10.036 0.878906V17.1211C10.036 17.3542 9.94332 17.5777 9.77837 17.7426C9.61342 17.9074 9.3897 18 9.15642 18Z"
+                                                    fill="white" />
+                                                <path
+                                                    d="M17.2838 9.87891H1.02947C0.796193 9.87891 0.572472 9.78631 0.407521 9.62148C0.242571 9.45665 0.149902 9.2331 0.149902 9C0.149902 8.7669 0.242571 8.54335 0.407521 8.37852C0.572472 8.21369 0.796193 8.12109 1.02947 8.12109H17.2838C17.5171 8.12109 17.7408 8.21369 17.9058 8.37852C18.0707 8.54335 18.1634 8.7669 18.1634 9C18.1634 9.2331 18.0707 9.45665 17.9058 9.62148C17.7408 9.78631 17.5171 9.87891 17.2838 9.87891Z"
+                                                    fill="white" />
+                                            </g>
+                                            <defs>
+                                                <clipPath id="clip0_69_767">
+                                                    <rect width="18.0135" height="18" fill="white"
+                                                        transform="translate(0.149902)" />
+                                                </clipPath>
+                                            </defs>
+                                        </svg>
+                                    </div>
+                                    <div class="timeline-content text-start">
+                                        <h5 class="mb-2">{{ __('Create Invoice') }}</h5>
+                                        <p class="text-muted mb-2">
+                                            {{ __('Created on ') }}{{ \Auth::user()->dateFormat($invoice->issue_date) }}</p>
+                                            @can('edit invoice')
+                                                @if ($invoice->status != 3 && $invoice->status != 4)
+                                                    <a href="{{ route('invoice.edit', \Crypt::encrypt($invoice->id)) }}"
+                                                        class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip"
+                                                        data-original-title="{{ __('Edit') }}"><i
+                                                            class="ti ti-pencil"></i>{{ __('Edit') }}</a>
+                                                @endif
+                                            @endcan
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6 col-lg-4 col-xl-4">
-                                <div class="timeline-icons"><span class="timeline-dots"></span>
-                                    <i class="ti ti-mail text-warning"></i>
+                            <div class="col-xl-4 col-md-5 col-sm-7 send-invoice invoice">
+                                <div class="progress mb-3">
+                                    <div class="progress mb-3">
+                                        <div class="{{ $invoice->status !== 0 ? 'progress-value' : '' }}"></div>
+                                    </div>
                                 </div>
-                                <h6 class="text-warning my-3">{{ __('Send Invoice') }}</h6>
-                                <p class="text-muted text-sm mb-3">
-                                    @if ($invoice->status != 0)
-                                        <i class="ti ti-clock mr-2"></i>{{ __('Sent on') }}
-                                        {{ \Auth::user()->dateFormat($invoice->send_date) }}
-                                    @else
-                                        @can('send invoice')
-                                            <small>{{ __('Status') }} : {{ __('Not Sent') }}</small>
+                                <div class="bill-timeline-inner d-flex gap-3">
+                                    <div class="timeline-icon d-flex align-items-center justify-content-center">
+                                        <svg width="19" height="18" viewBox="0 0 19 18" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                                d="M13.3797 5.12359L7.43524 9.24773L1.21757 7.17645C0.783563 7.03159 0.491171 6.62471 0.493668 6.16758C0.496198 5.71046 0.791942 5.30607 1.22762 5.16627L17.1241 0.0508648C17.502 -0.0705155 17.9167 0.0290971 18.1974 0.309582C18.4781 0.590066 18.5778 1.00447 18.4563 1.38208L13.337 17.2666C13.1971 17.702 12.7924 17.9975 12.335 18C11.8775 18.0025 11.4703 17.7103 11.3253 17.2767L9.24246 11.0335L13.3797 5.12359Z"
+                                                fill="white" />
+                                        </svg>
+                                    </div>
+                                    <div class="timeline-content text-start">
+                                        <h5 class="mb-2">{{ __('Send Invoice') }}</h5>
+                                        <p class="text-muted mb-2">
+                                            @if ($invoice->status != 0)
+                                                {{ __('Sent on') }} {{ \Auth::user()->dateFormat($invoice->send_date) }}
+                                            @else
+                                                @can('send purchase')
+                                                    <small>{{ __('Status') }} : {{ __('Not Sent') }}</small>
+                                                @endcan
+                                            @endif
+                                        </p>
+                                        @if ($invoice->status == 0)
+                                        @can('send bill')
+                                            <a href="{{ route('invoice.sent', $invoice->id) }}" class="btn btn-sm d-inline-flex align-items-center gap-2 btn-warning border-0"
+                                                data-bs-toggle="tooltip" data-original-title="{{ __('Mark Sent') }}"><i
+                                                    class="ti ti-send"></i>{{ __('Send') }}</a>
                                         @endcan
                                     @endif
-                                </p>
-
-                                @if ($invoice->status == 0)
-                                    @can('send bill')
-                                        <a href="{{ route('invoice.sent', $invoice->id) }}" class="btn btn-sm btn-warning"
-                                            data-bs-toggle="tooltip" data-original-title="{{ __('Mark Sent') }}"><i
-                                                class="ti ti-send mr-2"></i>{{ __('Send') }}</a>
-                                    @endcan
-                                @endif
-                            </div>
-                            <div class="col-md-6 col-lg-4 col-xl-4">
-                                <div class="timeline-icons"><span class="timeline-dots"></span>
-                                    <i class="ti ti-report-money text-info"></i>
+                                    </div>
                                 </div>
-                                <h6 class="text-info my-3">{{ __('Get Paid') }}</h6>
-                                <p class="text-muted text-sm mb-3">{{ __('Status') }} : {{ __('Awaiting payment') }} </p>
-                                @if ($invoice->status != 0)
-                                    @can('create payment invoice')
-                                        <a href="#" data-url="{{ route('invoice.payment', $invoice->id) }}"
-                                            data-ajax-popup="true" data-title="{{ __('Add Payment') }}" class="btn btn-sm btn-info"
-                                            data-original-title="{{ __('Add Payment') }}"><i
-                                                class="ti ti-report-money mr-2"></i>{{ __('Add Payment') }}</a> <br>
-                                    @endcan
-                                @endif
-
+                            </div>
+                            <div class="col-xl-4 col-md-5 col-sm-7 get-paid invoice">
+                                <div class="progress mb-3">
+                                    <div class="{{ $invoice->status == 4 ? 'progress-value' : '' }}"></div>
+                                </div>
+                                <div class="bill-timeline-inner d-flex gap-3">
+                                    <div class="timeline-icon d-flex align-items-center justify-content-center">
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M0.386719 5.30859H8.47266V6.36328H0.386719V5.30859Z" fill="white" />
+                                            <path
+                                                d="M8.47266 7.06641H0.386719V9.52734H8.47266V7.06641ZM3.72656 8.47266H1.79297C1.5988 8.47266 1.44141 8.31526 1.44141 8.12109C1.44141 7.92693 1.5988 7.76953 1.79297 7.76953H3.72656C3.92073 7.76953 4.07812 7.92693 4.07812 8.12109C4.07812 8.31526 3.92073 8.47266 3.72656 8.47266ZM7.06641 8.47266H5.13281C4.93864 8.47266 4.78125 8.31526 4.78125 8.12109C4.78125 7.92693 4.93864 7.76953 5.13281 7.76953H7.06641C7.26057 7.76953 7.41797 7.92693 7.41797 8.12109C7.41797 8.31526 7.26057 8.47266 7.06641 8.47266Z"
+                                                fill="white" />
+                                            <path
+                                                d="M10.5981 3.55005C10.5708 3.55131 4.92694 3.55075 3.55078 3.55086V4.60555H9.17578V10.2305H3.55078V14.4493H14.4492V7.06648C12.4352 7.06648 10.776 5.51852 10.5981 3.55005Z"
+                                                fill="white" />
+                                            <path
+                                                d="M10.598 2.84846C10.7029 1.68683 11.3235 0.671766 12.2291 0.0351562H4.95703C4.18148 0.0351562 3.55078 0.665859 3.55078 1.44141V2.84766C4.94831 2.84776 10.5702 2.8472 10.598 2.84846ZM9.52734 1.79297H7.76953C7.57536 1.79297 7.41797 1.63557 7.41797 1.44141C7.41797 1.24724 7.57536 1.08984 7.76953 1.08984H9.52734C9.72148 1.08984 9.87891 1.24724 9.87891 1.44141C9.87891 1.63557 9.72148 1.79297 9.52734 1.79297Z"
+                                                fill="white" />
+                                            <path
+                                                d="M3.55078 16.5586C3.55078 17.3341 4.18148 17.9648 4.95703 17.9648H13.043C13.8185 17.9648 14.4492 17.3341 14.4492 16.5586V15.1523H3.55078V16.5586ZM8.12109 16.207H9.87891C10.073 16.207 10.2305 16.3645 10.2305 16.5586C10.2305 16.7527 10.073 16.9102 9.87891 16.9102H8.12109C7.92703 16.9102 7.76953 16.7527 7.76953 16.5586C7.76953 16.3645 7.92703 16.207 8.12109 16.207Z"
+                                                fill="white" />
+                                            <path
+                                                d="M14.4492 0.0351562C12.7017 0.0351562 11.2852 1.45174 11.2852 3.19922C11.2852 4.9467 12.7017 6.36328 14.4492 6.36328C16.1967 6.36328 17.6133 4.9467 17.6133 3.19922C17.6133 1.45174 16.1967 0.0351562 14.4492 0.0351562ZM16.0162 2.52496L14.1705 4.37066C14.0331 4.50795 13.8106 4.50795 13.6733 4.37066L12.8822 3.57964C12.7449 3.44236 12.7449 3.21975 12.8822 3.08243C13.0196 2.94514 13.2421 2.94514 13.3794 3.08243L13.9219 3.62489L15.519 2.02778C15.6563 1.89049 15.8788 1.89049 16.0162 2.02778C16.1535 2.16506 16.1535 2.38767 16.0162 2.52496Z"
+                                                fill="white" />
+                                        </svg>
+                                    </div>
+                                    <div class="timeline-content text-start">
+                                        <h5 class="mb-2">{{ __('Get Paid') }}</h5>
+                                        <p class="text-muted mb-2">
+                                            {{ __('Status') }} : {{ __('Awaiting payment') }}
+                                        </p>
+                                        @if ($invoice->status != 0)
+                                        @can('create payment invoice')
+                                            <a href="#" data-url="{{ route('invoice.payments', $invoice->id) }}"
+                                                data-ajax-popup="true" data-title="{{ __('Add Payment') }}"
+                                                class="btn btn-sm d-inline-flex align-items-center gap-2" data-original-title="{{ __('Add Payment') }}"><i
+                                                    class="ti ti-report-money"></i>{{ __('Add Payment') }}</a> <br>
+                                        @endcan
+                                    @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -320,1727 +358,580 @@
         @endif
     @endcan
 
-    @if (\Auth::user()->type == 'company')
+    @if (Gate::check('show invoice'))
         @if ($invoice->status != 0)
             <div class="row justify-content-between align-items-center mb-3">
-                <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
-                    @if (!empty($invoicePayment))
-                        <div class="all-button-box mr-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                    @if ($invoice->status != 4)
+                        <div class="all-button-box">
                             <a href="#" class="btn btn-sm btn-primary"
                                 data-url="{{ route('invoice.credit.note', $invoice->id) }}" data-ajax-popup="true"
-                                data-title="{{ __('Add Credit Note') }}">
-                                {{ __('Add Credit Note') }}
+                                data-title="{{ __('Apply Credit Note') }}">
+                                {{ __('Apply Credit Note') }}
                             </a>
                         </div>
-                    @endif
-                    @if ($invoice->status != 4)
-                        <div class="all-button-box mr-2">
+                        <div class="all-button-box">
                             <a href="{{ route('invoice.payment.reminder', $invoice->id) }}"
                                 class="btn btn-sm btn-primary">{{ __('Receipt Reminder') }}</a>
                         </div>
                     @endif
-                    <div class="all-button-box mr-2">
+                    <div class="all-button-box">
                         <a href="{{ route('invoice.resent', $invoice->id) }}"
                             class="btn btn-sm btn-primary">{{ __('Resend Invoice') }}</a>
                     </div>
                     <div class="all-button-box">
-                        <a href="{{ route('invoice.pdf', Crypt::encrypt($invoice->id)) }}" target="_blank"
-                            class="btn btn-sm btn-primary box">{{ __('Download') }}</a>
+                        <a href="{{ route('invoice.pdf', Crypt::encrypt($invoice->id)) }}"  target="_blank"
+                            class="btn btn-sm btn-primary">{{ __('Download') }}</a>
                     </div>
                 </div>
             </div>
         @endif
-    @else
-        <div class="row justify-content-between align-items-center mb-3">
-            <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
-                <div class="all-button-box">
-                    <a href="#" class="btn btn-xs btn-primary btn-icon-only width-auto me-2"
-                        data-url="{{ route('customer.invoice.send', $invoice->id) }}" data-ajax-popup="true"
-                        data-title="{{ __('Send Invoice') }}">
-                        {{ __('Send Mail') }}
-                    </a>
-                </div>
-                <div class="all-button-box">
-                    <a href="{{ route('invoice.pdf', Crypt::encrypt($invoice->id)) }}" target="_blank"
-                        class="btn btn-xs btn-primary btn-icon-only width-auto me-2">
-                        {{ __('Download') }}
-                    </a>
-                </div>
-                @if (
-                    $invoice->getDue() > 0 &&
-                        !empty($company_payment_settings) &&
-                        (
-                            $company_payment_setting['is_bank_enabled'] == 'on' ||
-                            $company_payment_setting['is_stripe_enabled'] == 'on' ||
-                            $company_payment_setting['is_paypal_enabled'] == 'on' ||
-                            $company_payment_setting['is_paystack_enabled'] == 'on' ||
-                            $company_payment_setting['is_flutterwave_enabled'] == 'on' ||
-                            $company_payment_setting['is_razorpay_enabled'] == 'on' ||
-                            $company_payment_setting['is_paytm_enabled'] == 'on' ||
-                            $company_payment_setting['is_mercado_enabled'] == 'on' ||
-                            $company_payment_setting['is_mollie_enabled'] == 'on' ||
-                            $company_payment_setting['is_skrill_enabled'] == 'on' ||
-                            $company_payment_setting['is_coingate_enabled'] == 'on' ||
-                            $company_payment_setting['is_paymentwall_enabled'] == 'on' ||
-                            $company_payment_setting['is_toyyibpay_enabled'] == 'on' ||
-                            $company_payment_setting['is_payfast_enabled'] == 'on' ||
-                            $company_payment_setting['is_iyzipay_enabled'] == 'on' ||
-                            $company_payment_setting['is_sspay_enabled'] == 'on' ||
-                            $company_payment_setting['is_paytab_enabled'] == 'on' ||
-                            $company_payment_setting['is_benefit_enabled'] == 'on' ||
-                            $company_payment_setting['is_cashfree_enabled'] == 'on' ||
-                            $company_payment_setting['is_aamarpay_enabled'] == 'on' ||
-                            $company_payment_setting['is_paytr_enabled'] == 'on' ||
-                            $company_payment_setting['is_yookassa_enabled'] == 'on' ||
-                            $company_payment_setting['is_xendit_enabled'] == 'on' ||
-                            $company_payment_setting['is_midtrans_enabled'] == 'on' ||
-                            $company_payment_setting['is_paiementpro_enabled'] == 'on' ||
-                            $company_payment_setting['is_nepalste_enabled'] == 'on' ||
-                            $company_payment_setting['is_cinetpay_enabled'] == 'on' ||
-                            $company_payment_setting['is_fedapay_enabled'] == 'on' ||
-                            $company_payment_setting['is_payhere_enabled'] == 'on' ||
-                            $company_payment_setting['is_tap_enabled'] == 'on' ||
-                            $company_payment_setting['is_authorizenet_enabled'] == 'on' ||
-                            $company_payment_setting['is_khalti_enabled'] == 'on' ||
-                            $company_payment_setting['is_ozow_enabled'] == 'on'
-                            ))
-                    <div class="all-button-box">
-                        <a href="#" class="btn btn-xs btn-primary btn-icon-only width-auto" data-bs-toggle="modal"
-                            data-bs-target="#paymentModal">
-                            {{ __('Pay Now') }}
-                        </a>
-                    </div>
-                @endif
-            </div>
-        </div>
     @endif
 
     <div class="row">
-        <!-- <div class="col-12"> -->
-        <div class="card">
-            <div class="card-body">
-                <div class="invoice">
-                    <div class="invoice-print">
-                        <div class="row invoice-title mt-2">
-                            <div class="col-xs-12 col-sm-12 col-nd-6 col-lg-6 col-12">
-                                <h2>{{ __('Invoice') }}</h2>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="invoice">
+                        <div class="invoice-print">
+                            <div class="row invoice-title mt-2">
+                                <div class="col-xs-12 col-sm-12 col-nd-6 col-lg-6 col-12">
+                                    <h4>{{ __('Invoice') }}</h4>
+                                </div>
+                                <div class="col-xs-12 col-sm-12 col-nd-6 col-lg-6 col-12 text-end">
+                                    <h4 class="invoice-number">
+                                        {{ AUth::user()->invoiceNumberFormat($invoice->invoice_id) }}</h4>
+                                </div>
+                                <div class="col-12">
+                                    <hr>
+                                </div>
                             </div>
-                            <div class="col-xs-12 col-sm-12 col-nd-6 col-lg-6 col-12 text-end">
-                                <h3 class="invoice-number">{{ AUth::user()->invoiceNumberFormat($invoice->invoice_id) }}
-                                </h3>
-                            </div>
-                            <div class="col-12">
-                                <hr>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col text-end">
-                                <div class="d-flex align-items-center justify-content-end">
-                                    <div class="me-4">
-                                        <small>
-                                            <strong>{{ __('Issue Date') }} :</strong><br>
-                                            {{ \Auth::user()->dateFormat($invoice->issue_date) }}<br><br>
-                                        </small>
-                                    </div>
-                                    <div>
-                                        <small>
-                                            <strong>{{ __('Due Date') }} :</strong><br>
-                                            {{ \Auth::user()->dateFormat($invoice->due_date) }}<br><br>
-                                        </small>
+                            <div class="row">
+                                <div class="col text-end">
+                                    <div class="d-flex align-items-center justify-content-end">
+                                        <div class="me-4">
+                                            <small>
+                                                <strong>{{ __('Issue Date') }} :</strong><br>
+                                                {{ \Auth::user()->dateFormat($invoice->issue_date) }}<br><br>
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <small>
+                                                <strong>{{ __('Due Date') }} :</strong><br>
+                                                {{ \Auth::user()->dateFormat($invoice->due_date) }}<br><br>
+                                            </small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            @if (!empty($customer->billing_name))
+                            <div class="row">
+
                                 <div class="col">
                                     <small class="font-style">
                                         <strong>{{ __('Billed To') }} :</strong><br>
-                                        {{ !empty($customer->billing_name) ? $customer->billing_name : '' }}<br>
-                                        {{ !empty($customer->billing_address) ? $customer->billing_address : '' }}<br>
-                                        {{ !empty($customer->billing_city) ? $customer->billing_city : '' . ', ' }},
-                                        {{ !empty($customer->billing_state) ? $customer->billing_state : '', ', ' }}
-                                        {{ !empty($customer->billing_zip) ? $customer->billing_zip : '' }}<br>
-                                        {{ !empty($customer->billing_country) ? $customer->billing_country : '' }}<br>
-                                        {{ !empty($customer->billing_phone) ? $customer->billing_phone : '' }}<br>
-                                        <strong>{{ __('Tax Number ') }} :
-                                        </strong>{{ !empty($customer->tax_number) ? $customer->tax_number : '' }}<br>
-                                        @if(!empty($settings['tax_type']) && !empty($settings['vat_number'])){{$settings['tax_type'].' '. __('Number')}} : {{$settings['vat_number']}} <br>@endif
+                                        @if (!empty($customer->billing_name))
+                                            {{ !empty($customer->billing_name) ? $customer->billing_name : '' }}<br>
+                                            {{ !empty($customer->billing_address) ? $customer->billing_address : '' }}<br>
+                                            {{ !empty($customer->billing_city) ? $customer->billing_city : '' . ', ' }}<br>
+                                            {{ !empty($customer->billing_state) ? $customer->billing_state : '', ', ' }},
+                                            {{ !empty($customer->billing_zip) ? $customer->billing_zip : '' }}<br>
+                                            {{ !empty($customer->billing_country) ? $customer->billing_country : '' }}<br>
+                                            {{ !empty($customer->billing_phone) ? $customer->billing_phone : '' }}<br>
+                                            @if ($settings['vat_gst_number_switch'] == 'on')
+                                                @if(!empty($settings['tax_type']) && !empty($settings['vat_number'])){{$settings['tax_type'].' '. __('Number')}} : {{$settings['vat_number']}} <br>@endif
+
+                                                <strong>{{ __('Tax Number ') }} :
+                                                </strong>{{ !empty($customer->tax_number) ? $customer->tax_number : '' }}
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
 
                                     </small>
                                 </div>
-                            @endif
-                            @if (App\Models\Utility::getValByName('shipping_display') == 'on')
-                                <div class="col ">
-                                    <small>
-                                        <strong>{{ __('Shipped To') }} :</strong><br>
-                                        {{ !empty($customer->shipping_name) ? $customer->shipping_name : '' }}<br>
-                                        {{ !empty($customer->shipping_address) ? $customer->shipping_address : '' }}<br>
-                                        {{ !empty($customer->shipping_city) ? $customer->shipping_city : '' . ', ' }},
-                                        {{ !empty($customer->shipping_state) ? $customer->shipping_state : '' . ', ' }}
-                                        {{ !empty($customer->shipping_zip) ? $customer->shipping_zip : '' }}<br>
-                                        {{ !empty($customer->shipping_country) ? $customer->shipping_country : '' }}<br>
-                                        {{ !empty($customer->shipping_phone) ? $customer->shipping_phone : '' }}<br>
-                                        <strong>{{ __('Tax Number ') }} :
-                                        </strong>{{ !empty($customer->tax_number) ? $customer->tax_number : '' }}
 
-                                    </small>
-                                </div>
-                            @endif
-                            <div class="col">
-                                <div class="float-end mt-3">
-                                @if(isset($settings_data['invoice_qr_display']) && $settings_data['invoice_qr_display'] == 'on')
-                                    {!! DNS2D::getBarcodeHTML(
-                                        route('pay.invoice', \Illuminate\Support\Facades\Crypt::encrypt($invoice->id)),
-                                        'QRCODE',
-                                        2,
-                                        2,
-                                    ) !!}
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col">
-                                <small>
-                                    <strong>{{ __('Status') }} :</strong><br>
-                                    @if ($invoice->status == 0)
-                                        <span
-                                            class="badge fix_badge p-1 px-3 bg-primary">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
-                                    @elseif($invoice->status == 1)
-                                        <span
-                                            class="badge fix_badge p-1 px-3 bg-info">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
-                                    @elseif($invoice->status == 2)
-                                        <span
-                                            class="badge fix_badge p-1 px-3 bg-secondary">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
-                                    @elseif($invoice->status == 3)
-                                        <span
-                                            class="badge fix_badge p-1 px-3 bg-warning">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
-                                    @elseif($invoice->status == 4)
-                                        <span
-                                            class="badge fix_badge p-1 px-3 bg-danger">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
-                                    @endif
-                                </small>
-                            </div>
-
-
-
-                            @if (!empty($customFields) && count($invoice->customField) > 0)
-                                @foreach ($customFields as $field)
-                                    <div class="col text-md-right">
+                                @if (App\Models\Utility::getValByName('shipping_display') == 'on')
+                                    <div class="col ">
                                         <small>
-                                            <strong>{{ $field->name }} :</strong><br>
-                                            {{ !empty($invoice->customField) ? $invoice->customField[$field->id] : '-' }}
-                                            <br><br>
+                                            <strong>{{ __('Shipped To') }} :</strong><br>
+                                            @if (!empty($customer->shipping_name))
+                                                {{ !empty($customer->shipping_name) ? $customer->shipping_name : '' }}<br>
+                                                {{ !empty($customer->shipping_address) ? $customer->shipping_address : '' }}<br>
+                                                {{ !empty($customer->shipping_city) ? $customer->shipping_city : '' . ', ' }}<br>
+                                                {{ !empty($customer->shipping_state) ? $customer->shipping_state : '' . ', ' }},
+                                                {{ !empty($customer->shipping_zip) ? $customer->shipping_zip : '' }}<br>
+                                                {{ !empty($customer->shipping_country) ? $customer->shipping_country : '' }}<br>
+                                                {{ !empty($customer->shipping_phone) ? $customer->shipping_phone : '' }}<br>
+                                            @else
+                                                -
+                                            @endif
                                         </small>
                                     </div>
-                                @endforeach
-                            @endif
-                        </div>
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <div class="font-weight-bold">{{ __('Product Summary') }}</div>
-                                <small>{{ __('All items here cannot be deleted.') }}</small>
-                                <div class="table-responsive mt-2">
-                                    <table class="table mb-0 table-striped">
-                                        <tr>
-                                            <th data-width="40" class="text-dark">#</th>
-                                            <th class="text-dark">{{ __('Product') }}</th>
-                                            <th class="text-dark">{{ __('Quantity') }}</th>
-                                            <th class="text-dark">{{ __('Rate') }}</th>
-                                            <th class="text-dark">{{ __('Discount') }}</th>
-                                            <th class="text-dark">{{ __('Tax') }}</th>
-                                            <th class="text-dark">{{ __('Description') }}</th>
-                                            <th class="text-right text-dark" width="12%">{{ __('Price') }}<br>
-                                                <small
-                                                    class="text-danger font-weight-bold">{{ __('before tax & discount') }}</small>
-                                            </th>
-                                        </tr>
-                                        @php
-                                        $totalQuantity = 0;
-                                        $totalRate = 0;
-                                        $totalTaxPrice = 0;
-                                        $totalDiscount = 0;
-                                        $taxesData = [];
-                                        $TaxPrice_array = [];
-                                    @endphp
-                                    @foreach ($iteams as $key => $iteam)
-                                        @if (!empty($iteam->tax))
-                                            @php
-                                                $taxes = App\Models\Utility::tax($iteam->tax);
-                                                $totalQuantity += $iteam->quantity;
-                                                $totalRate += $iteam->price;
-                                                $totalDiscount += $iteam->discount;
-                                                foreach ($taxes as $taxe) {
-                                                    $taxDataPrice = App\Models\Utility::taxRate($taxe->rate, $iteam->price, $iteam->quantity, $iteam->discount);
-                                                    if (array_key_exists($taxe->name, $taxesData)) {
-                                                        $taxesData[$taxe->name] = $taxesData[$taxe->name] + $taxDataPrice;
-                                                    } else {
-                                                        $taxesData[$taxe->name] = $taxDataPrice;
-                                                    }
-                                                }
-                                            @endphp
+                                @endif
+                                <div class="col">
+                                    <div class="float-end mt-3">
+                                        @if($settings['invoice_qr_display'] == 'on')
+                                        {!! DNS2D::getBarcodeHTML(
+                                            route('invoice.link.copy', \Illuminate\Support\Facades\Crypt::encrypt($invoice->id)),
+                                            'QRCODE',
+                                            2,
+                                            2,
+                                        ) !!}
                                         @endif
-                                        <tr>
-                                            <td>{{ $key + 1 }}</td>
-                                            <td>{{ !empty($iteam->product) ? $iteam->product->name : '' }}</td>
-                                            <td>{{ $iteam->quantity }} ({{ $iteam->product->unit->name }})</td>
-                                            <td>{{ \Auth::user()->priceFormat($iteam->price) }}</td>
-                                            <td>
-                                                {{ \Auth::user()->priceFormat($iteam->discount) }}
-                                            </td>
-                                            <td>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col">
+                                    <small>
+                                        <strong>{{ __('Status') }} :</strong><br>
+                                        @if ($invoice->status == 0)
+                                            <span
+                                                class="badge p-2 px-3 rounded bg-primary">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
+                                        @elseif($invoice->status == 1)
+                                            <span
+                                                class="badge p-2 px-3 rounded bg-warning">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
+                                        @elseif($invoice->status == 2)
+                                            <span
+                                                class="badge p-2 px-3 rounded bg-danger">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
+                                        @elseif($invoice->status == 3)
+                                            <span
+                                                class="badge p-2 px-3 rounded bg-info">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
+                                        @elseif($invoice->status == 4)
+                                            <span
+                                                class="badge p-2 px-3 rounded bg-primary">{{ __(\App\Models\Invoice::$statues[$invoice->status]) }}</span>
+                                        @endif
+                                    </small>
+                                </div>
 
-                                                @if (!empty($iteam->tax))
-                                                    <table>
-                                                        @php
-                                                            $totalTaxRate = 0;
-                                                            $data = 0;
-                                                        @endphp
-                                                        @foreach ($taxes as $tax)
-                                                            @php
-                                                                $taxPrice = App\Models\Utility::taxRate($tax->rate, $iteam->price, $iteam->quantity, $iteam->discount);
-                                                                $totalTaxPrice += $taxPrice;
-                                                            @endphp
-                                                            <tr>
-                                                                <td>{{ $tax->name . ' (' . $tax->rate . '%)' }}</td>
-                                                                <td>{{ \Auth::user()->priceFormat($taxPrice) }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                        @php
-                                                            array_push($TaxPrice_array, $data);
-                                                        @endphp
-                                                    </table>
-                                                @else
-                                                    -
-                                                @endif
-                                            </td>
-
-                                            <td>{{ !empty($iteam->description) ? $iteam->description : '-' }}</td>
-                                            @php
-                                                $tr_tex = array_key_exists($key, $TaxPrice_array) == true ? $TaxPrice_array[$key] : 0;
-                                            @endphp
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($iteam->price * $iteam->quantity - $iteam->discount + $tr_tex) }}
-                                            </td>
-                                        </tr>
+                                @if (!empty($customFields) && count($invoice->customField) > 0)
+                                    @foreach ($customFields as $field)
+                                        <div class="col text-md-right">
+                                            <small>
+                                                <strong>{{ $field->name }} :</strong><br>
+                                                {{ !empty($invoice->customField) ? $invoice->customField[$field->id] : '-' }}
+                                                <br><br>
+                                            </small>
+                                        </div>
                                     @endforeach
-                                    <tfoot>
-                                        <tr>
-                                            <td></td>
-                                            <td><b>{{ __('Total') }}</b></td>
-                                            <td><b>{{ $totalQuantity }}</b></td>
-                                            <td><b>{{ \Auth::user()->priceFormat($totalRate) }}</b></td>
-                                            <td>
-                                                <b>{{ \Auth::user()->priceFormat($totalDiscount) }}</b>
-
-                                            </td>
-                                            <td><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="text-right"><b>{{ __('Sub Total') }}</b></td>
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->getSubTotal()) }}</td>
-                                        </tr>
-
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="text-right"><b>{{ __('Discount') }}</b></td>
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->getTotalDiscount()) }}</td>
-                                        </tr>
-
-                                        {{-- @if (!empty($taxesData))
+                                @endif
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <div class="font-weight-bold">{{ __('Product Summary') }}</div>
+                                    <small>{{ __('All items here cannot be deleted.') }}</small>
+                                    <div class="table-responsive mt-2">
+                                        <table class="table mb-0 table-striped">
+                                            <tr>
+                                                <th data-width="40" class="text-dark">#</th>
+                                                <th class="text-dark">{{ __('Product') }}</th>
+                                                <th class="text-dark">{{ __('Quantity') }}</th>
+                                                <th class="text-dark">{{ __('Rate') }}</th>
+                                                <th class="text-dark">{{ __('Discount') }}</th>
+                                                <th class="text-dark">{{ __('Tax') }}</th>
+                                                <th class="text-dark">{{ __('Description') }}</th>
+                                                <th class="text-end text-dark" width="12%">{{ __('Price') }}<br>
+                                                    <small
+                                                        class="text-danger font-weight-bold">{{ __('after tax & discount') }}</small>
+                                                </th>
+                                            </tr>
                                             @php
-                                                $totalTaxRate = 0;
+                                                $totalQuantity = 0;
+                                                $totalRate = 0;
                                                 $totalTaxPrice = 0;
+                                                $totalDiscount = 0;
+                                                $taxesData = [];
                                             @endphp
-                                            @foreach ($taxes as $tax)
-                                                @php
-                                                    $taxPrice = App\Models\Utility::taxRate($tax->rate, $iteam->price, $iteam->quantity, $iteam->discount);
-                                                    $totalTaxPrice += $taxPrice;
-                                                @endphp
+                                            @foreach ($iteams as $key => $iteam)
                                                 <tr>
-                                                    <td colspan="6"></td>
-                                                    <td class="text-right"><b>{{ $tax->name }}</b></td>
-                                                    <td class="text-right">
-                                                        {{ \Auth::user()->priceFormat($taxPrice) }}</td>
+                                                    <td>{{ $key + 1 }}</td>
+                                                    @php
+                                                        $productName = $iteam->product;
+                                                        $totalRate += $iteam->price;
+                                                        $totalQuantity += $iteam->quantity;
+                                                        $totalDiscount += $iteam->discount;
+                                                    @endphp
+                                                    <td>{{ !empty($productName) ? $productName->name : '' }}</td>
+                                                    <td>{{ $iteam->quantity . ' (' . (isset($productName->unit) ? $productName->unit->name : 'No unit') . ')' }}</td>
+                                                    <td>{{ \Auth::user()->priceFormat($iteam->price) }}</td>
+                                                    <td>{{ \Auth::user()->priceFormat($iteam->discount) }}</td>
 
-                                                </tr>
-                                            @endforeach
-                                        @endif --}}
-                                        @if (!empty($taxesData))
-                                            @foreach ($taxesData as $taxName => $taxPrice)
-                                                <tr>
-                                                    <td colspan="6"></td>
-                                                    <td class="text-right"><b>{{ $taxName }}</b></td>
-                                                    <td class="text-right">{{ \Auth::user()->priceFormat($taxPrice) }}
+
+                                                    <td>
+                                                        @if (!empty($iteam->tax))
+                                                            <table>
+                                                                @php
+                                                                    $itemTaxes = [];
+                                                                    $getTaxData = Utility::getTaxData();
+                                                                    $itemTaxPrice = 0;
+                                                                    if (!empty($iteam->tax)) {
+                                                                        foreach (explode(',', $iteam->tax) as $tax) {
+                                                                            $taxPrice = \Utility::taxRate($getTaxData[$tax]['rate'], $iteam->price, $iteam->quantity, $iteam->discount);
+
+                                                                            $itemTaxPrice += $taxPrice;
+                                                                            $totalTaxPrice += $taxPrice;
+                                                                            $itemTax['name'] = $getTaxData[$tax]['name'];
+                                                                            $itemTax['rate'] = $getTaxData[$tax]['rate'] . '%';
+                                                                            $itemTax['price'] = \Auth::user()->priceFormat($taxPrice);
+
+                                                                            $itemTaxes[] = $itemTax;
+                                                                            if (array_key_exists($getTaxData[$tax]['name'], $taxesData)) {
+                                                                                $taxesData[$getTaxData[$tax]['name']] = $taxesData[$getTaxData[$tax]['name']] + $taxPrice;
+                                                                            } else {
+                                                                                $taxesData[$getTaxData[$tax]['name']] = $taxPrice;
+                                                                            }
+                                                                        }
+                                                                        $iteam->itemTax = $itemTaxes;
+                                                                    } else {
+                                                                        $iteam->itemTax = [];
+                                                                    }
+                                                                @endphp
+                                                                @foreach ($iteam->itemTax as $tax)
+
+                                                                        <tr>
+                                                                            <td>{{$tax['name'] .' ('.$tax['rate'] .')'}}</td>
+                                                                            <td>{{ $tax['price']}}</td>
+                                                                        </tr>
+                                                                @endforeach
+                                                            </table>
+                                                        @else
+                                                            @php
+                                                                $itemTaxPrice = 0;
+                                                            @endphp
+                                                            -
+                                                        @endif
+                                                    </td>
+
+                                                    <td>{{ !empty($iteam->description) ? $iteam->description : '-' }}</td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($iteam->price * $iteam->quantity - $iteam->discount + $itemTaxPrice) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @endif
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="blue-text text-right"><b>{{ __('Total') }}</b></td>
-                                            <td class="blue-text text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->getTotal()) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="text-right"><b>{{ __('Paid') }}</b></td>
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->getTotal() - $invoice->getDue() - $invoice->invoiceTotalCreditNote()) }}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="text-right"><b>{{ __('Credit Note') }}</b></td>
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->invoiceTotalCreditNote()) }}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="6"></td>
-                                            <td class="text-right"><b>{{ __('Due') }}</b></td>
-                                            <td class="text-right">
-                                                {{ \Auth::user()->priceFormat($invoice->getDue()) }}</td>
-                                        </tr>
-                                    </tfoot>
-                                    </table>
+                                            <tfoot>
+                                                <tr>
+                                                    <td></td>
+                                                    <td><b>{{ __('Total') }}</b></td>
+                                                    <td><b>{{ $totalQuantity }}</b></td>
+                                                    <td><b>{{ \Auth::user()->priceFormat($totalRate) }}</b></td>
+                                                    <td><b>{{ \Auth::user()->priceFormat($totalDiscount) }}</b></td>
+                                                    <td><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Sub Total') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->getSubTotal()) }}</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Discount') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->getTotalDiscount()) }}
+                                                    </td>
+                                                </tr>
+
+                                                @if (!empty($taxesData))
+                                                    @foreach ($taxesData as $taxName => $taxPrice)
+                                                        <tr>
+                                                            <td colspan="6"></td>
+                                                            <td class="text-center"><b>{{ $taxName }}</b></td>
+                                                            <td class="text-end">
+                                                                {{ \Auth::user()->priceFormat($taxPrice) }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                @endif
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="blue-text text-center"><b>{{ __('Total') }}</b></td>
+                                                    <td class="blue-text text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->getTotal()) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Paid') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->getTotal() - $invoice->getDue() - $invoice->invoiceTotalCreditNote()) }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Credit Note Applied') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->invoiceTotalCreditNote()) }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Credit Note Issued') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->invoiceTotalCustomerCreditNote()) }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Due') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->getDue()) }}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
-        <!-- </div> -->
-
-
-        <!-- <div class="col-12"> -->
-        <h5 class="h4 d-inline-block font-weight-400 mb-2">{{ __('Receipt Summary') }}</h5>
-        <div class="card">
-            <div class="card-body table-border-style">
-                <div class="table-responsive">
-                    <table class="table ">
-                        <tr>
-                            {{-- <th class="text-dark">{{ __('Payment Receipt') }}</th> --}}
-                            <th class="text-dark">{{ __('Date') }}</th>
-                            <th class="text-dark">{{ __('Amount') }}</th>
-                            <th class="text-dark">{{ __('Payment Type') }}</th>
-                            <th class="text-dark">{{ __('Account') }}</th>
-                            <th class="text-dark">{{ __('Reference') }}</th>
-                            <th class="text-dark">{{ __('Description') }}</th>
-                            <th class="text-dark">{{ __('Receipt') }}</th>
-                            <th class="text-dark">{{ __('OrderId') }}</th>
-                            @can('delete payment invoice')
-                                <th class="text-dark">{{ __('Action') }}</th>
-                            @endcan
-                        </tr>
-                        @foreach ($invoice->payments as $key => $payment)
-                            @php
-                                $paymentpath = \App\Models\Utility::get_file('uploads/payment');
-                                $path = \App\Models\Utility::get_file('/uploads/bank_receipt');
-                            @endphp
-                            <tr>
-                                {{-- <td>
-                                    @if (!empty($payment->add_receipt))
-                                        <a href="{{ $paymentpath . '/' . $payment->add_receipt }}" download=""
-                                            class="btn btn-sm btn-primary btn-icon me-2" target="_blank"><span
-                                                class="btn-inner--icon"><i class="ti ti-download"></i></span></a>
-                                        <a href="{{ $paymentpath . '/' . $payment->add_receipt }}"
-                                            class="btn btn-sm btn-secondary btn-icon " target="_blank"><span
-                                                class="btn-inner--icon"><i class="ti ti-crosshair"></i></span></a>
-                                    @else
-                                        -
-                                    @endif
-                                </td> --}}
-                                <td>{{ \Auth::user()->dateFormat($payment->date) }}</td>
-                                <td>{{ \Auth::user()->priceFormat($payment->amount) }}</td>
-                                <td>{{ $payment->payment_type }}</td>
-                                <td>{{ !empty($payment->bankAccount) ? $payment->bankAccount->bank_name . ' ' . $payment->bankAccount->holder_name : '--' }}
-                                </td>
-                                <td>{{ !empty($payment->reference) ? $payment->reference : '--' }}</td>
-                                <td>{{ !empty($payment->description) ? $payment->description : '--' }}</td>
-                                <td>
-                                    {{-- @if (!empty($payment->receipt))
-                                        <a href="{{ $path . '/' . $payment->receipt }}" target="_blank">
-                                            <i class="ti ti-file"></i></a>
-                                    @elseif(!empty($payment->add_receipt))
-                                        <a href="{{ $paymentpath . '/' . $payment->add_receipt }}" target="_blank">
-                                            <i class="ti ti-file"></i></a>
-                                    @else
-                                        --
-                                    @endif --}}
-                                    @if (!empty($payment->add_receipt) && empty($payment->receipt) && ($payment->payment_type=='Manually'))
-                                        <div class="d-flex">
-                                            <a href="{{ $paymentpath . '/' . $payment->add_receipt }}" 
-                                                download=""
-                                                class="btn btn-sm btn-primary btn-icon me-2"
-                                                data-bs-toggle="tooltip" title="{{ __('Download') }}" 
-                                                target="_blank"><span class="btn-inner--icon"><i
-                                                class="ti ti-download"></i></span></a>
-                                            <a href="{{ $paymentpath . '/' . $payment->add_receipt }}" 
-                                                class="btn btn-sm btn-secondary btn-icon"
-                                                data-bs-toggle="tooltip" title="{{ __('Preview') }}" 
-                                                target="_blank"><span class="btn-inner--icon"><i
-                                                class="ti ti-crosshair"></i></span></a>
-                                        </div>
-                                    @elseif(!empty($payment->add_receipt) && empty($payment->receipt) )
-                                        <a href="{{ $payment->add_receipt }}" target="_blank"
-                                            data-bs-toggle="tooltip" title="{{ __('Receipt') }}" >
-                                            <i class="ti ti-file"></i></a>
-                                    @elseif(empty($payment->add_receipt) && !empty($payment->receipt) )
-                                        <a href="{{  $path . '/' . $payment->receipt }}" target="_blank"
-                                            data-bs-toggle="tooltip" title="{{ __('Receipt') }}" >
-                                            <i class="ti ti-file"></i></a>
-                                    @else
-                                    --
-                                    @endif
-                                </td>
-                                <td>{{ !empty($payment->order_id) ? $payment->order_id : '--' }}</td>
-                                @can('delete invoice product')
-                                    <td>
-                                        <div class="action-btn me-2">
-                                            {!! Form::open([
-                                                'method' => 'post',
-                                                'route' => ['invoice.payment.destroy', $invoice->id, $payment->id],
-                                                'id' => 'delete-form-' . $payment->id,
-                                            ]) !!}
-                                            <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger "
-                                                data-bs-toggle="tooltip" title="Delete"
-                                                data-original-title="{{ __('Delete') }}"
-                                                data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
-                                                data-confirm-yes="document.getElementById('delete-form-{{ $payment->id }}').submit();">
-                                                <i class="ti ti-trash text-white"></i>
-                                            </a>
-                                            {!! Form::close() !!}
-                                    </td>
-                                @endcan
-                            </tr>
-                        @endforeach
-                        @php
-                            $path = \App\Models\Utility::get_file('/uploads/bank_receipt');
-                            $paymentpath = \App\Models\Utility::get_file('uploads/payment');
-                        @endphp
-                        @foreach ($invoice->bankpayment as $key => $bankpayment)
-                            <tr>
-                                {{-- <td>
-                                    @if (!empty($payment->add_receipt))
-                                        -
-                                        <a href="{{ $paymentpath . '/' . $bankpayment->add_receipt }}" download=""
-                                            class="btn btn-sm btn-primary btn-icon " target="_blank"><span
-                                                class="btn-inner--icon"><i class="ti ti-download"></i></span></a>
-                                        <a href="{{ $paymentpath . '/' . $bankpayment->add_receipt }}"
-                                            class="btn btn-sm btn-secondary btn-icon " target="_blank"><span
-                                                class="btn-inner--icon"><i class="ti ti-crosshair"></i></span></a>
-                                        <a href="{{asset(Storage::url('uploads/payment')).'/'.$payment->add_receipt}}"  class="btn btn-sm btn-secondary btn-icon " target="_blank"><span class="btn-inner--icon"><i class="ti ti-crosshair"></i></span></a>
-                                    @else
-                                        -
-                                    @endif
-                                </td> --}}
-                                <td>{{ \Auth::user()->dateFormat($bankpayment->date ?? $bankpayment->created_at) }}</td>
-                                <td>{{ \Auth::user()->priceFormat($bankpayment->amount) }}</td>
-                                <td>{{ 'Bank Transfer' }}</td>
-                                <td>{{ !empty($bankpayment->bankAccount) ? $bankpayment->bankAccount->bank_name . ' ' . $bankpayment->bankAccount->holder_name : '--' }}
-                                </td>
-                                <td>{{ !empty($bankpayment->reference) ? $bankpayment->reference : '--' }}</td>
-                                <td>{{ !empty($bankpayment->description) ? $bankpayment->description : '--' }}</td>
-                                <td>
-                                    @if (!empty($bankpayment->receipt))
-                                        <a href="{{ $path . '/' . $bankpayment->receipt }}" target="_blank"
-                                            data-bs-toggle="tooltip" title="{{ __('Receipt') }}" > <i
-                                                class="ti ti-file"></i></a>
-                                    @else
-                                        --
-                                    @endif
-                                </td>
-                                <td>{{ !empty($bankpayment->order_id) ? $bankpayment->order_id : '--' }}</td>
-
-                                @can('delete payment invoice')
-                                    <td>
-                                        {{-- @if ($payment->payment_status == 'pending' && $payment->payment_type == 'Bank Transfer') --}}
-                                        <div class="action-btn me-2">
-                                            <a href="#" class="mx-3 btn btn-sm d-inline-flex align-items-center bg-warning"
-                                                data-bs-toggle="modal" data-size="lg" data-ajax-popup="true"
-                                                data-url="{{ route('invoice.payment.show', [$bankpayment->id]) }}"
-                                                data-title="{{ __('Payment Status') }}" data-size="lg">
-                                                <span class="text-white"> <i class="ti ti-caret-right text-white"
-                                                        data-bs-toggle="tooltip"
-                                                        data-bs-original-title="{{ __('Payment Status') }}"></i></span></a>
-                                        </div>
-                                        {{-- @endif --}}
-                                        <div class="action-btn">
-                                            {!! Form::open([
-                                                'method' => 'delete',
-                                                'route' => ['invoice.delete', $bankpayment->id],
-                                                'id' => 'delete-form-' . $bankpayment->id,
-                                            ]) !!}
-                                            <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
-                                                data-bs-toggle="tooltip" title="Delete"
-                                                data-original-title="{{ __('Delete') }}"
-                                                data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
-                                                data-confirm-yes="document.getElementById('delete-form-{{ $bankpayment->id }}').submit();">
-                                                <i class="ti ti-trash text-white"></i>
-                                            </a>
-
-                                            {!! Form::close() !!}
-                                        </div>
-                                    </td>
-                                @endcan
-                            </tr>
-                        @endforeach
-                    </table>
-                </div>
-            </div>
-        </div>
-        <!-- </div> -->
-        <div class="row"></div>
-        <!-- <div class="col-12"> -->
-        <h5 class="h4 d-inline-block font-weight-400 mb-2">{{ __('Credit Note Summary') }}</h5>
-        <div class="card">
-            <div class="card-body table-border-style table-border-style">
-                <div class="table-responsive">
-                    <table class="table">
-                        <tr>
-                            <th class="text-dark">{{ __('Date') }}</th>
-                            <th class="text-dark" class="">{{ __('Amount') }}</th>
-                            <th class="text-dark" class="">{{ __('Description') }}</th>
-                            @if (Gate::check('edit credit note') || Gate::check('delete credit note'))
-                                <th class="text-dark">{{ __('Action') }}</th>
-                            @endif
-                        </tr>
-                        @forelse($invoice->creditNote as $key =>$creditNote)
-                            <tr>
-                                <td>{{ \Auth::user()->dateFormat($creditNote->date) }}</td>
-                                <td class="">{{ \Auth::user()->priceFormat($creditNote->amount) }}</td>
-                                <td class="">{{ $creditNote->description }}</td>
-                                <td>
-                                    @can('edit credit note')
-                                        <div class="action-btn me-2">
-                                            <a data-url="{{ route('invoice.edit.credit.note', [$creditNote->invoice, $creditNote->id]) }}"
-                                                data-ajax-popup="true" title="{{ __('Edit') }}"
-                                                data-original-title="{{ __('Credit Note') }}" href="#"
-                                                class="mx-3 btn btn-sm align-items-center bg-info" data-bs-toggle="tooltip"
-                                                data-original-title="{{ __('Edit') }}">
-                                                <i class="ti ti-pencil text-white"></i>
-                                            </a>
-                                        </div>
-                                    @endcan
-                                    @can('delete credit note')
-                                        <div class="action-btn">
-                                            {!! Form::open([
-                                                'method' => 'DELETE',
-                                                'route' => ['invoice.delete.credit.note', $creditNote->invoice, $creditNote->id],
-                                                'id' => 'delete-form-' . $creditNote->id,
-                                            ]) !!}
-                                            <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
-                                                data-bs-toggle="tooltip" title="Delete"
-                                                data-original-title="{{ __('Delete') }}"
-                                                data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
-                                                data-confirm-yes="document.getElementById('delete-form-{{ $creditNote->id }}').submit();">
-                                                <i class="ti ti-trash text-white"></i>
-                                            </a>
-                                            {!! Form::close() !!}
-                                        </div>
-                                    @endcan
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center">
-                                    <p class="text-dark">{{ __('No Data Found') }}</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </table>
-                </div>
-            </div>
-        </div>
-        <!-- </div> -->
     </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body table-border-style">
+                    <h5 class=" d-inline-block">{{ __('Receipt Summary') }}</h5><br>
+                    @if ($user_plan->storage_limit <= $invoice_user->storage_limit)
+                        <small
+                            class="text-danger font-bold">{{ __('Your plan storage limit is over , so you can not see customer uploaded payment receipt') }}</small><br>
+                    @endif
 
-    @auth('customer')
-        @if ($invoice->getDue() > 0)
-            <div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog modal-lg" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="paymentModalLabel">{{ __('Add Payment') }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="card bg-none card-box">
-                                <section class="nav-tabs p-2">
-                                    @if (
-                                        !empty($company_payment_setting) &&
-                                            ($company_payment_setting['is_stripe_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paypal_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paystack_enabled'] == 'on' ||
-                                                $company_payment_setting['is_flutterwave_enabled'] == 'on' ||
-                                                $company_payment_setting['is_razorpay_enabled'] == 'on' ||
-                                                $company_payment_setting['is_mercado_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paytm_enabled'] == 'on' ||
-                                                $company_payment_setting['is_mollie_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paypal_enabled'] == 'on' ||
-                                                $company_payment_setting['is_skrill_enabled'] == 'on' ||
-                                                $company_payment_setting['is_coingate_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paymentwall_enabled'] == 'on' ||
-                                                $company_payment_setting['is_toyyibpay_enabled'] == 'on' ||
-                                                $company_payment_setting['is_payfast_enabled'] == 'on' ||
-                                                $company_payment_setting['is_bank_enabled'] == 'on' ||
-                                                $company_payment_setting['is_iyzipay_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paytab_enabled'] == 'on' ||
-                                                $company_payment_setting['is_benefit_enabled'] == 'on' ||
-                                                $company_payment_setting['is_cashfree_enabled'] == 'on' ||
-                                                $company_payment_setting['is_aamarpay_enabled'] == 'on' ||
-                                                $company_payment_setting['is_paytr_enabled'] == 'on'))
+                    <div class="table-responsive mt-3">
+                        <table class="table ">
+                            <thead>
+                                <tr>
+                                    <th class="text-dark">{{ __('Payment Receipt') }}</th>
+                                    <th class="text-dark">{{ __('Date') }}</th>
+                                    <th class="text-dark">{{ __('Amount') }}</th>
+                                    <th class="text-dark">{{ __('Payment Type') }}</th>
+                                    <th class="text-dark">{{ __('Account') }}</th>
+                                    <th class="text-dark">{{ __('Reference') }}</th>
+                                    <th class="text-dark">{{ __('Description') }}</th>
+                                    <th class="text-dark">{{ __('Receipt') }}</th>
+                                    <th class="text-dark">{{ __('OrderId') }}</th>
+                                    @can('delete payment invoice')
+                                        <th class="text-dark">{{ __('Action') }}</th>
+                                    @endcan
+                                </tr>
+                            </thead>
 
-                                        <ul class="nav nav-pills  mb-3" role="tablist">
-                                            @if (
-                                                $company_payment_setting['is_stripe_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['stripe_key']) &&
-                                                    !empty($company_payment_setting['stripe_secret']))
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm active" data-bs-toggle="tab"
-                                                        href="#stripe-payment" role="tab" aria-controls="stripe"
-                                                        aria-selected="true">{{ __('Stripe') }}</a>
-                                                </li>
+                            @if (!empty($invoice->payments) && $invoice->bankPayments)
+                                @php
+                                    $path = \App\Models\Utility::get_file('uploads/order');
+                                @endphp
+
+                                @foreach ($invoice->payments as $key => $payment)
+                                    <tr>
+                                        <td>
+                                            @if (!empty($payment->add_receipt))
+                                                <a href="{{ asset(Storage::url('uploads/payment')) . '/' . $payment->add_receipt }}"
+                                                    download="" class="btn btn-sm btn-secondary btn-icon"
+                                                    target="_blank"><span class="btn-inner--icon"><i
+                                                            class="ti ti-download"></i></span></a>
+                                            @else
+                                                -
                                             @endif
-
-                                            @if (
-                                                $company_payment_setting['is_paypal_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['paypal_client_id']) &&
-                                                    !empty($company_payment_setting['paypal_secret_key']))
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#paypal-payment" role="tab" aria-controls="paypal"
-                                                        aria-selected="false">{{ __('Paypal') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (
-                                                $company_payment_setting['is_paystack_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['paystack_public_key']) &&
-                                                    !empty($company_payment_setting['paystack_secret_key']))
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#paystack-payment" role="tab" aria-controls="paystack"
-                                                        aria-selected="false">{{ __('Paystack') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_flutterwave_enabled']) &&
-                                                    $company_payment_setting['is_flutterwave_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#flutterwave-payment" role="tab"
-                                                        aria-controls="flutterwave"
-                                                        aria-selected="false">{{ __('Flutterwave') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_razorpay_enabled']) && $company_payment_setting['is_razorpay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#razorpay-payment" role="tab" aria-controls="razorpay"
-                                                        aria-selected="false">{{ __('Razorpay') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_mercado_enabled']) && $company_payment_setting['is_mercado_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#mercado-payment" role="tab" aria-controls="mercado"
-                                                        aria-selected="false">{{ __('Mercado') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_paytm_enabled']) && $company_payment_setting['is_paytm_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#paytm-payment" role="tab" aria-controls="paytm"
-                                                        aria-selected="false">{{ __('Paytm') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_mollie_enabled']) && $company_payment_setting['is_mollie_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#mollie-payment" role="tab" aria-controls="mollie"
-                                                        aria-selected="false">{{ __('Mollie') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_skrill_enabled']) && $company_payment_setting['is_skrill_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#skrill-payment" role="tab" aria-controls="skrill"
-                                                        aria-selected="false">{{ __('Skrill') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_coingate_enabled']) && $company_payment_setting['is_coingate_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#coingate-payment" role="tab" aria-controls="coingate"
-                                                        aria-selected="false">{{ __('Coingate') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_paymentwall_enabled']) &&
-                                                    $company_payment_setting['is_paymentwall_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <a class="btn btn-outline-primary btn-sm ml-1" data-bs-toggle="tab"
-                                                        href="#paymentwall-payment" role="tab"
-                                                        aria-controls="paymentwall"
-                                                        aria-selected="false">{{ __('PaymentWall') }}</a>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_toyyibpay_enabled']) && $company_payment_setting['is_toyyibpay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-                                                    <button class=" btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#toyyibpay-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Toyyibpay') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_toyyibpay_enabled']) && $company_payment_setting['is_toyyibpay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class=" btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#toyyibpay-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Toyyibpay') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_payfast_enabled']) && $company_payment_setting['is_payfast_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class=" btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#payfast-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true"
-                                                        onclick=get_payfast_status()>{{ __('PayFast') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_iyzipay_enabled']) && $company_payment_setting['is_iyzipay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class=" btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#iyzipay-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('IyziPay') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_sspay_enabled']) && $company_payment_setting['is_sspay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#sspay-payment" type="button"
-                                                        role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Sspay') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_paytab_enabled']) && $company_payment_setting['is_paytab_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#paytab-payment" type="button"
-                                                        role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Paytab') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_benefit_enabled']) && $company_payment_setting['is_benefit_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#benefit-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Benefit') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_cashfree_enabled']) && $company_payment_setting['is_cashfree_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#cashfree-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Cashfree') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_aamarpay_enabled']) && $company_payment_setting['is_aamarpay_enabled'] == 'on')
-                                                <li class="nav-item mb-2">
-
-                                                    <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                        data-bs-toggle="pill" data-bs-target="#aamarpay-payment"
-                                                        type="button" role="tab" aria-controls="pills-home"
-                                                        aria-selected="true">{{ __('Aamarpay') }}</button>
-                                                </li>
-                                            @endif
-
-                                            @if (isset($company_payment_setting['is_paytr_enabled']) && $company_payment_setting['is_paytr_enabled'] == 'on')
-                                            <li class="nav-item mb-2">
-
-                                                <button class="btn btn-outline-success btn-sm" id="pills-home-tab"
-                                                    data-bs-toggle="pill" data-bs-target="#paytr-payment" type="button"
-                                                    role="tab" aria-controls="pills-home"
-                                                    aria-selected="true">{{ __('PayTR') }}</button>
-                                            </li>
+                                        </td>
+                                        <td>{{ \Auth::user()->dateFormat($payment->date) }}</td>
+                                        <td>{{ \Auth::user()->priceFormat($payment->amount) }}</td>
+                                        <td>{{ $payment->payment_type }}</td>
+                                        <td>{{ !empty($payment->bankAccount) ? $payment->bankAccount->bank_name . ' ' . $payment->bankAccount->holder_name : '--' }}
+                                        </td>
+                                        <td>{{ !empty($payment->reference) ? $payment->reference : '--' }}</td>
+                                        <td>{{ !empty($payment->description) ? $payment->description : '--' }}</td>
+                                        @if ($user_plan->storage_limit <= $invoice_user->storage_limit)
+                                            <td>
+                                                --
+                                            </td>
+                                        @else
+                                            <td>
+                                                @if (!empty($payment->receipt))
+                                                    @if ($payment->payment_type == "STRIPE")
+                                                        <a href="{{ $payment->receipt }}" target="_blank">
+                                                            <i class="ti ti-file"></i>{{__('Receipt')}}</a>
+                                                    @else
+                                                        <a href="{{ $path . '/' . $payment->receipt }}" target="_blank">
+                                                            <i class="ti ti-file"></i>{{__('Receipt')}}</a>
+                                                    @endif
+                                                @elseif(!empty($payment->add_receipt))
+                                                    <a href="{{ asset(Storage::url('uploads/payment')) . '/' . $payment->add_receipt }}"
+                                                        target="_blank">
+                                                        <i class="ti ti-file"></i>{{ __('Receipt') }}</a>
+                                                @else
+                                                    --
+                                                @endif
+                                            </td>
                                         @endif
+                                        <td>{{ !empty($payment->order_id) ? $payment->order_id : '--' }}</td>
+                                        @can('delete invoice product')
+                                            <td>
+                                                <div class="action-btn ">
+                                                    {!! Form::open([
+                                                        'method' => 'post',
+                                                        'route' => ['invoice.payment.destroy', $invoice->id, $payment->id],
+                                                        'id' => 'delete-form-' . $payment->id,
+                                                    ]) !!}
 
-                                        </ul>
-                                    @endif
-                                    <div class="tab-content">
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                ($company_payment_setting['is_stripe_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['stripe_key']) &&
-                                                    !empty($company_payment_setting['stripe_secret'])))
-                                            <div class="tab-pane fade active show" id="stripe-payment" role="tabpanel"
-                                                aria-labelledby="stripe-payment">
-                                                <form method="post"
-                                                    action="{{ route('customer.invoice.payment', $invoice->id) }}"
-                                                    class="require-validation" id="payment-form">
-                                                    @csrf
-                                                    <div class="row">
-                                                        <div class="col-sm-8">
-                                                            <div class="custom-radio">
-                                                                <label
-                                                                    class="font-16 font-weight-bold">{{ __('Credit / Debit Card') }}</label>
-                                                            </div>
-                                                            <p class="mb-0 pt-1 text-sm">
-                                                                {{ __('Safe money transfer using your bank account. We support Mastercard, Visa, Discover and American express.') }}
-                                                            </p>
-                                                        </div>
+                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
+                                                        data-bs-toggle="tooltip" title="Delete"
+                                                        data-original-title="{{ __('Delete') }}"
+                                                        data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
+                                                        data-confirm-yes="document.getElementById('delete-form-{{ $payment->id }}').submit();">
+                                                        <i class="ti ti-trash text-white"></i>
+                                                    </a>
+                                                    {!! Form::close() !!}
+                                            </td>
+                                        @endcan
+                                    </tr>
+                                @endforeach
 
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-md-12">
-                                                            <div class="form-group">
-                                                                <label for="card-name-on">{{ __('Name on card') }}</label>
-                                                                <input type="text" name="name" id="card-name-on"
-                                                                    class="form-control required"
-                                                                    placeholder="{{ \Auth::user()->name }}">
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-12">
-                                                            <div id="card-element">
+                                {{--  start for bank transfer --}}
+                                @foreach ($invoice->bankPayments as $key => $bankPayment)
+                                    <tr>
+                                        <td>-</td>
+                                        <td>{{ \Auth::user()->dateFormat($bankPayment->date) }}</td>
+                                        <td>{{ \Auth::user()->priceFormat($bankPayment->amount) }}</td>
+                                        <td>{{ __('Bank Transfer') }}<br>
+                                        </td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td>-</td>
 
-                                                            </div>
-                                                            <div id="card-errors" role="alert"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="form-group col-md-12">
-                                                            <br>
-                                                            <label for="amount">{{ __('Amount') }}</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-prepend"><span
-                                                                        class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                                <input class="form-control" required="required"
-                                                                    min="0" name="amount" type="number"
-                                                                    value="{{ $invoice->getDue() }}" min="0"
-                                                                    step="0.01" max="{{ $invoice->getDue() }}"
-                                                                    id="amount">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-12">
-                                                            <div class="error" style="display: none;">
-                                                                <div class='alert-danger alert'>
-                                                                    {{ __('Please correct the errors and try again.') }}</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10"
-                                                            type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <button class="btn btn-sm btn-primary " type="submit">{{ __('Make Payment') }}</button>
-                                                                                                    </div> -->
-                                                </form>
-                                            </div>
+                                        @if ($user_plan->storage_limit <= $invoice_user->storage_limit)
+                                            <td>
+                                                ---
+                                            </td>
+                                        @else
+                                            <td>
+                                                @if (!empty($bankPayment->receipt))
+                                                    <a href="{{ $path . '/' . $bankPayment->receipt }}" target="_blank">
+                                                        <i class="ti ti-file"></i> {{ __('Receipt') }}
+                                                    </a>
+                                                @endif
+
+                                            </td>
                                         @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                ($company_payment_setting['is_paypal_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['paypal_client_id']) &&
-                                                    !empty($company_payment_setting['paypal_secret_key'])))
-                                            <div class="tab-pane fade " id="paypal-payment" role="tabpanel"
-                                                aria-labelledby="paypal-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4 " method="POST"
-                                                    id="payment-form"
-                                                    action="{{ route('customer.invoice.with.paypal', $invoice->id) }}">
-                                                    @csrf
-                                                    <div class="row">
-                                                        <div class="form-group col-md-12">
-                                                            <label for="amount">{{ __('Amount') }}</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-prepend"><span
-                                                                        class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                                <input class="form-control" required="required"
-                                                                    min="0" name="amount" type="number"
-                                                                    value="{{ $invoice->getDue() }}" min="0"
-                                                                    step="0.01" max="{{ $invoice->getDue() }}"
-                                                                    id="amount">
-                                                                @error('amount')
-                                                                    <span class="invalid-amount" role="alert">
-                                                                        <strong>{{ $message }}</strong>
-                                                                    </span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
+                                        <td>{{ !empty($bankPayment->order_id) ? $bankPayment->order_id : '--' }}</td>
+                                        @can('delete invoice product')
+                                            <td>
+                                                @if ($bankPayment->status == 'Pending')
+                                                    <div class="action-btn me-2">
+                                                        <a href="#"
+                                                            data-url="{{ URL::to('invoice/' . $bankPayment->id . '/action') }}"
+                                                            data-size="lg" data-ajax-popup="true"
+                                                            data-title="{{ __('Payment Status') }}"
+                                                            class="mx-3 btn btn-sm align-items-center bg-warning"
+                                                            data-bs-toggle="tooltip" title="{{ __('Payment Status') }}"
+                                                            data-original-title="{{ __('Payment Status') }}">
+                                                            <i class="ti ti-caret-right text-white"></i>
+                                                        </a>
                                                     </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" name="submit"
-                                                            type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <button class="btn btn-sm btn-primary " name="submit" type="submit">{{ __('Make Payment') }}</button>
-                                                                                                    </div> -->
-                                                </form>
-                                            </div>
-                                        @endif
+                                                @endif
+                                                <div class="action-btn ">
+                                                    {!! Form::open([
+                                                        'method' => 'post',
+                                                        'route' => ['invoice.payment.destroy', $invoice->id, $bankPayment->id],
+                                                        'id' => 'delete-form-' . $bankPayment->id,
+                                                    ]) !!}
 
-                                        @if (isset($company_payment_setting['is_paystack_enabled']) &&
-                                                $company_payment_setting['is_paystack_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['paystack_public_key']) &&
-                                                !empty($company_payment_setting['paystack_secret_key']))
-                                            <div class="tab-pane fade " id="paystack-payment" role="tabpanel"
-                                                aria-labelledby="paypal-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="paystack-payment-form"
-                                                    action="{{ route('customer.invoice.pay.with.paystack') }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_paystack"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input class="btn btn-sm btn-primary " id="pay_with_paystack" type="button" value="{{ __('Make Payment') }}">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_flutterwave_enabled']) &&
-                                                $company_payment_setting['is_flutterwave_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['paystack_public_key']) &&
-                                                !empty($company_payment_setting['paystack_secret_key']))
-                                            <div class="tab-pane fade " id="flutterwave-payment" role="tabpanel"
-                                                aria-labelledby="paypal-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.flaterwave') }}"
-                                                    method="post" class="require-validation" id="flaterwave-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_flaterwave"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input class="btn btn-sm btn-primary " id="pay_with_flaterwave" type="button" value="{{ __('Make Payment') }}">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_razorpay_enabled']) && $company_payment_setting['is_razorpay_enabled'] == 'on')
-                                            <div class="tab-pane fade " id="razorpay-payment" role="tabpanel"
-                                                aria-labelledby="paypal-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.razorpay') }}"
-                                                    method="post" class="require-validation" id="razorpay-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_razorpay"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input class="btn btn-sm btn-primary " id="pay_with_razorpay" type="button" value="{{ __('Make Payment') }}">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_mercado_enabled']) && $company_payment_setting['is_mercado_enabled'] == 'on')
-                                            <div class="tab-pane fade " id="mercado-payment" role="tabpanel"
-                                                aria-labelledby="mercado-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.mercado') }}" method="post"
-                                                    class="require-validation" id="mercado-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_mercado"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input type="submit" id="pay_with_mercado" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_paytm_enabled']) && $company_payment_setting['is_paytm_enabled'] == 'on')
-                                            <div class="tab-pane fade" id="paytm-payment" role="tabpanel"
-                                                aria-labelledby="paytm-payment">
-                                                <form role="form" action="{{ route('customer.invoice.pay.with.paytm') }}"
-                                                    method="post" class="require-validation" id="paytm-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-group">
-                                                            <label for="flaterwave_coupon"
-                                                                class=" text-dark">{{ __('Mobile Number') }}</label>
-                                                            <input type="text" id="mobile" name="mobile"
-                                                                class="form-control mobile" data-from="mobile"
-                                                                placeholder="{{ __('Enter Mobile Number') }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_paytm"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input type="submit" id="pay_with_paytm" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_mollie_enabled']) && $company_payment_setting['is_mollie_enabled'] == 'on')
-                                            <div class="tab-pane fade " id="mollie-payment" role="tabpanel"
-                                                aria-labelledby="mollie-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.mollie') }}" method="post"
-                                                    class="require-validation" id="mollie-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_mollie"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input type="submit" id="pay_with_mollie" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_skrill_enabled']) && $company_payment_setting['is_skrill_enabled'] == 'on')
-                                            <div class="tab-pane fade " id="skrill-payment" role="tabpanel"
-                                                aria-labelledby="skrill-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.skrill') }}" method="post"
-                                                    class="require-validation" id="skrill-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    @php
-                                                        $skrill_data = [
-                                                            'transaction_id' => md5(date('Y-m-d') . strtotime('Y-m-d H:i:s') . 'user_id'),
-                                                            'user_id' => 'user_id',
-                                                            'amount' => 'amount',
-                                                            'currency' => 'currency',
-                                                        ];
-                                                        session()->put('skrill_data', $skrill_data);
-
-                                                    @endphp
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_skrill"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input type="submit" id="pay_with_skrill" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (isset($company_payment_setting['is_coingate_enabled']) && $company_payment_setting['is_coingate_enabled'] == 'on')
-                                            <div class="tab-pane fade " id="coingate-payment" role="tabpanel"
-                                                aria-labelledby="coingate-payment">
-                                                <form role="form"
-                                                    action="{{ route('customer.invoice.pay.with.coingate') }}"
-                                                    method="post" class="require-validation" id="coingate-payment-form">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" id="pay_with_coingate"
-                                                            name="submit" type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                        <input type="submit" id="pay_with_coingate" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                    </div> -->
-
-                                                </form>
-                                            </div>
-                                        @endif
-                                        {{-- @dd($company_payment_setting) --}}
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                $company_payment_setting['is_paymentwall_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_paymentwall_enabled']) &&
-                                                !empty($company_payment_setting['paymentwall_secret_key']))
-                                            <div class="tab-pane " id="paymentwall-payment">
-                                                <!-- <div class="card"> -->
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="paymentwall-payment-form"
-                                                    action="{{ route('customer.invoice.paymentwallpayment') }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <!-- <div class="border p-3 mb-3 rounded">
-                                                                                                            <div class="row">
-                                                                                                                <div class="col-md-10">
-                                                                                                                    <div class="form-group">
-                                                                                                                        <label for="paypal_coupon" class="form-label">{{ __('Coupon') }}</label>
-                                                                                                                        <input type="text" id="paymentwall_coupon" name="coupon" class="form-control coupon" data-from="paymentwall" placeholder="{{ __('Enter Coupon Code') }}">
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                                <div class="col-auto my-auto">
-                                                                                                                    <a href="#" class="apply-btn apply-coupon" data-bs-toggle="tooltip" data-title="{{ __('Apply') }}"><i class="ti ti-save"></i></a>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                        <div class="form-group mt-3">
-                                                                                                            <div class="col-sm-12">
-                                                                                                                <div class="text-sm-right">
-                                                                                                                    <input type="submit" id="pay_with_paymentwall" value="{{ __('Pay Now') }}" class="btn-create badge-blue">
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </div> -->
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend"><span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10"
-                                                            id="pay_with_paymentwall" name="submit"
-                                                            type="submit">{{ __('Make Payment') }} </button>
-                                                    </div>
-                                                    <!-- <div class="form-group mt-3">
-                                                                                                            <input type="submit" id="pay_with_paymentwall" value="{{ __('Make Payment') }}" class="btn btn-sm btn-primary ">
-                                                                                                        </div> -->
-                                                </form>
-                                                <!-- </div> -->
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_toyyibpay_enabled']) &&
-                                                $company_payment_setting['is_toyyibpay_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_toyyibpay_enabled']))
-                                            <div class="tab-pane fade " id="toyyibpay-payment" role="tabpanel"
-                                                aria-labelledby="toyyibpay-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="toyyibpay-payment-form"
-                                                    action="{{ route('invoice.with.toyyibpay', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_paymentwall"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_payfast_enabled']) &&
-                                                $company_payment_setting['is_payfast_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_payfast_enabled']) &&
-                                                !empty($company_payment_setting['is_payfast_enabled']))
-                                            <div class="tab-pane fade " id="payfast-payment" role="tabpanel"
-                                                aria-labelledby="payfast-payment">
-                                                @php
-                                                    $pfHost = $company_payment_setting['payfast_mode'] == 'sandbox' ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
-                                                @endphp
-                                                <form role="form" action={{ 'https://' . $pfHost . '/eng/process' }}
-                                                    method="post" id="payfast-payment-form">
-                                                    @csrf
-
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="pay_fast_amount" onchange=get_payfast_status()>
-                                                        </div>
-                                                    </div>
-                                                    <div id="get-payfast-inputs"></div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input type="hidden" name="invoice_id" id="invoice_id"
-                                                            value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_payfast"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                ($company_payment_setting['is_iyzipay_enabled'] == 'on' &&
-                                                    !empty($company_payment_setting['iyzipay_private_key']) &&
-                                                    !empty($company_payment_setting['iyzipay_secret_key'])))
-                                            <div class="tab-pane fade " id="iyzipay-payment" role="tabpanel"
-                                                aria-labelledby="iyzipay-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4 " method="POST"
-                                                    id="payment-form"
-                                                    action="{{ route('invoice.with.iyzipay', $invoice->id) }}">
-
-                                                    @csrf
-                                                    <div class="row">
-                                                        <div class="form-group col-md-12">
-                                                            <label for="amount">{{ __('Amount') }}</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-prepend"><span
-                                                                        class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}</span></span>
-                                                                <input class="form-control" required="required"
-                                                                    min="0" name="amount" type="number"
-                                                                    value="{{ $invoice->getDue() }}" min="0"
-                                                                    step="0.01" max="{{ $invoice->getDue() }}"
-                                                                    id="amount">
-                                                                @error('amount')
-                                                                    <span class="invalid-amount" role="alert">
-                                                                        <strong>{{ $message }}</strong>
-                                                                    </span>
-                                                                @enderror
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <button class="btn btn-sm btn-primary m-r-10" name="submit"
-                                                            type="submit">{{ __('Make Payment') }}</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        @endif
-
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_sspay_enabled']) &&
-                                                $company_payment_setting['is_sspay_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_sspay_enabled']))
-                                            <div class="tab-pane fade " id="sspay-payment" role="tabpanel"
-                                                aria-labelledby="sspay-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="sspay-payment-form"
-                                                    action="{{ route('invoice.pay.with.sspay', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_sspay"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_paytab_enabled']) &&
-                                                $company_payment_setting['is_paytab_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_paytab_enabled']))
-                                            <div class="tab-pane fade " id="paytab-payment" role="tabpanel"
-                                                aria-labelledby="paytab-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="paytab-payment-form"
-                                                    action="{{ route('invoice.pay.with.paytab', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_paytab"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_benefit_enabled']) &&
-                                                $company_payment_setting['is_benefit_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_benefit_enabled']))
-                                            <div class="tab-pane fade" id="benefit-payment" role="tabpanel"
-                                                aria-labelledby="benefit-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="benefit-payment-form"
-                                                    action="{{ route('invoice.pay.with.benefit', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_benefit"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_cashfree_enabled']) &&
-                                                $company_payment_setting['is_cashfree_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_cashfree_enabled']))
-                                            <div class="tab-pane fade" id="cashfree-payment" role="tabpanel"
-                                                aria-labelledby="cashfree-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="cashfree-payment-form"
-                                                    action="{{ route('invoice.pay.with.cashfree', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_cashfree"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_aamarpay_enabled']) &&
-                                                $company_payment_setting['is_aamarpay_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_aamarpay_enabled']))
-                                            <div class="tab-pane fade" id="aamarpay-payment" role="tabpanel"
-                                                aria-labelledby="aamarpay-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="aamarpay-payment-form"
-                                                    action="{{ route('invoice.pay.aamarpay.payment', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_aarampay"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                        @if (
-                                            !empty($company_payment_setting) &&
-                                                isset($company_payment_setting['is_paytr_enabled']) &&
-                                                $company_payment_setting['is_paytr_enabled'] == 'on' &&
-                                                !empty($company_payment_setting['is_paytr_enabled']))
-                                            <div class="tab-pane fade" id="paytr-payment" role="tabpanel"
-                                                aria-labelledby="paytr-payment">
-                                                <form class="w3-container w3-display-middle w3-card-4" method="POST"
-                                                    id="paytr-payment-form"
-                                                    action="{{ route('invoice.pay.paytr.payment', $invoice->id) }}">
-                                                    @csrf
-                                                    <input type="hidden" name="invoice_id"
-                                                        value="{{ \Illuminate\Support\Facades\Crypt::encrypt($invoice->id) }}">
-
-                                                    <div class="form-group col-md-12">
-                                                        <label for="amount">{{ __('Amount') }}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-prepend">
-                                                                <span
-                                                                    class="input-group-text">{{ App\Models\Utility::getValByName('site_currency') }}
-                                                                </span>
-                                                            </span>
-                                                            <input class="form-control" required="required" min="0"
-                                                                name="amount" type="number"
-                                                                value="{{ $invoice->getDue() }}" min="0"
-                                                                step="0.01" max="{{ $invoice->getDue() }}"
-                                                                id="amount">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 form-group mt-3 text-end">
-                                                        <input class="btn btn-sm btn-primary m-r-10" id="pay_with_paytr"
-                                                            type="submit" value="{{ __('Make Payment') }}">
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        @endif
-
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
+                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
+                                                        data-bs-toggle="tooltip" title="Delete"
+                                                        data-original-title="{{ __('Delete') }}"
+                                                        data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
+                                                        data-confirm-yes="document.getElementById('delete-form-{{ $bankPayment->id }}').submit();">
+                                                        <i class="ti ti-trash text-white"></i>
+                                                    </a>
+                                                    {!! Form::close() !!}
+                                            </td>
+                                        @endcan
+                                    </tr>
+                                @endforeach
+                                {{--  end for bank transfer --}}
+                            @else
+                                <tr>
+                                    <td colspan="{{ Gate::check('delete invoice product') ? '10' : '9' }}"
+                                        class="text-center text-dark">
+                                        <p>{{ __('No Data Found') }}</p>
+                                    </td>
+                                </tr>
+                            @endif
+                        </table>
                     </div>
                 </div>
             </div>
-        @endif
-    @endauth
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body table-border-style">
+                    <h5 class="d-inline-block mb-5">{{ __('Credit Note Summary') }}</h5>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="text-dark">{{ __('Credit Note') }}</th>
+                                    <th class="text-dark">{{ __('Date') }}</th>
+                                    <th class="text-dark" class="">{{ __('Amount') }}</th>
+                                    <th class="text-dark" class="">{{ __('Description') }}</th>
+                                    @if (Gate::check('edit credit note') || Gate::check('delete credit note'))
+                                        <th class="text-dark">{{ __('Action') }}</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            @forelse($invoice->creditNote as $key =>$creditNote)
+                                <tr>
+                                    <td><span class="btn btn-outline-primary">{{ !empty($creditNote->creditNote) ? \App\Models\CustomerCreditNotes::creditNumberFormat($creditNote->creditNote->credit_id) : '---'}}</span></td>
+                                    <td>{{ \Auth::user()->dateFormat($creditNote->date) }}</td>
+                                    <td class="">{{ \Auth::user()->priceFormat($creditNote->amount) }}</td>
+                                    <td class="">{{ $creditNote->description }}</td>
+                                    <td>
+                                        @can('edit credit note')
+                                            <div class="action-btn me-2">
+                                                <a data-url="{{ route('invoice.edit.credit.note', [$creditNote->invoice, $creditNote->id]) }}"
+                                                    data-ajax-popup="true" title="{{ __('Edit Credit Note') }}"
+                                                    data-original-title="{{ __('Credit Note') }}" href="#"
+                                                    class="mx-3 btn btn-sm align-items-center bg-info" data-bs-toggle="tooltip"
+                                                    data-original-title="{{ __('Edit Credit Note') }}">
+                                                    <i class="ti ti-pencil text-white"></i>
+                                                </a>
+                                            </div>
+                                        @endcan
+                                        @can('delete credit note')
+                                            <div class="action-btn ">
+                                                {!! Form::open([
+                                                    'method' => 'DELETE',
+                                                    'route' => ['invoice.delete.credit.note', $creditNote->invoice, $creditNote->id],
+                                                    'id' => 'delete-form-' . $creditNote->id,
+                                                ]) !!}
+                                                <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger "
+                                                    data-bs-toggle="tooltip" title="Delete"
+                                                    data-original-title="{{ __('Delete') }}"
+                                                    data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
+                                                    data-confirm-yes="document.getElementById('delete-form-{{ $creditNote->id }}').submit();">
+                                                    <i class="ti ti-trash text-white"></i>
+                                                </a>
+                                                {!! Form::close() !!}
+                                            </div>
+                                        @endcan
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        <p class="text-dark">{{ __('No Data Found') }}</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 @endsection

@@ -10,6 +10,7 @@ class Payment extends Model
         'date',
         'amount',
         'account_id',
+        'chart_account_id',
         'vender_id',
         'description',
         'category_id',
@@ -34,55 +35,9 @@ class Payment extends Model
         return $this->hasOne('App\Models\BankAccount', 'id', 'account_id');
     }
 
-    public static function accounts($account)
+    public function chartAccount()
     {
-        $categoryArr  = explode(',', $account);
-        $unitRate = 0;
-        foreach ($categoryArr as $account) {
-            if ($account == 0) {
-                $unitRate = '';
-            } else {
-                $account        = BankAccount::find($account);
-                // $unitRate   = ($account->bank_name ?? '');
-                $unitRate    = ($account->bank_name.'  '.$account->holder_name);
-                // dd($unitRate);
-
-            }
-        }
-
-        return $unitRate;
-    }
-
-    public static function vendors($vendor)
-    {
-        $categoryArr  = explode(',', $vendor);
-        $unitRate = 0;
-        foreach ($categoryArr as $vendor) {
-            if ($vendor == 0) {
-                $unitRate = '';
-            } else {
-                $vendor       = Vender::find($vendor);
-                $unitRate       = ($vendor->name) ?? '-';
-            }
-        }
-
-        return $unitRate;
-    }
-
-    public static function categories($category)
-    {
-        $categoryArr  = explode(',', $category);
-        $unitRate = 0;
-        foreach ($categoryArr as $category) {
-            if ($category == 0) {
-                $unitRate = '';
-            } else {
-                $category       = ProductServiceCategory::find($category);
-                $unitRate       = ($category->name) ?? '-';
-            }
-        }
-
-        return $unitRate;
+        return $this->hasOne('App\Models\ChartOfAccount', 'id', 'chart_account_id');
     }
 
 }

@@ -1,32 +1,38 @@
-
-@extends('layouts.admin')
-@section('page-title')
- {{$notification_template->name}}
-@endsection
-@section('breadcrumb')
-<li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Home') }}</a></li>
-<li class="breadcrumb-item active" aria-current="page">{{ __('Notification Templates') }}</li>
-@endsection
-
 @php
-    $chatgpt = App\Models\Utility::getValByName('enable_chatgpt');
-    $languages = \App\Models\Utility::languages();
     $lang = isset($curr_noti_tempLang->lang) ? $curr_noti_tempLang->lang : 'en';
     if ($lang == null) {
         $lang = 'en';
     }
+
+    $user = \App\Models\User::find(\Auth::user()->creatorId());
+    $plan= \App\Models\Plan::getPlan($user->plan);
 @endphp
+@extends('layouts.admin')
+@section('page-title')
+    {{ $notification_template->name }}
+@endsection
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ __('Notification Template') }}</li>
+@endsection
+@push('pre-purpose-css-page')
+    <link rel="stylesheet" href="{{asset('css/summernote/summernote-bs4.css')}}">
+@endpush
+
+@section('action-btn')
+@endsection
 @section('content')
-    @if ($chatgpt == 'on')
-        <div class="text-end mb-2">
-            <a href="#" class="btn btn-sm btn-primary" data-size="md" data-ajax-popup-over="true"
-                data-url="{{ route('generate', ['notification template']) }}" 
-                 data-title="{{ __('Generate Content With AI') }}">
+    @if ($plan->chatgpt == 1)
+        <div class="text-end mb-3">
+            <a href="#" class="btn btn-sm btn-primary" data-size="medium" data-ajax-popup-over="true"
+                data-url="{{ route('generate', ['notification template']) }}" data-bs-toggle="tooltip"
+                data-bs-placement="top" title="{{ __('Generate') }}" data-title="{{ __('Generate Content With AI') }}">
                 <i class="fas fa-robot"></i>{{ __(' Generate With AI') }}
             </a>
         </div>
     @endif
-    <div class="mt-2">
+
+    <div class="row">
         <div class="col-md-12 col-12">
             <div class="card">
                 <div class="card-header card-body">
@@ -74,12 +80,12 @@
                             </div>
                             <div class="form-group col-12">
                                 {{ Form::label('content', __('Notification Message'), ['class' => 'col-form-label text-dark']) }}
-                                {{ Form::textarea('content', $curr_noti_tempLang->content, ['class' => 'form-control font-style', 'required' => 'required','cols'=>50,'rows'=>10]) }}
+                                {{ Form::textarea('content', $curr_noti_tempLang->content, ['class' => 'form-control font-style', 'required' => 'required']) }}
                             </div>
-                            <div class="col-md-12 text-end mb-3">
+                            <div class="col-md-12 text-end">
                                 {{ Form::hidden('lang', null) }}
                                 <input type="submit" value="{{ __('Save') }}"
-                                    class="btn btn-print-invoice  btn-primary m-r-10">
+                                    class="btn btn-print-invoice  btn-primary">
                             </div>
                         </div>
                         {{ Form::close() }}
@@ -90,3 +96,4 @@
     </div>
 
 @endsection
+

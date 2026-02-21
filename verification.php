@@ -1,7 +1,6 @@
 <?php
-// System : AccountGo
-// System Version : 7.6
-
+// System : ERPGo SaaS
+// System Version : 7.8
 
 function getPhpVersionInfo()
 {
@@ -51,7 +50,6 @@ if(!$allowed_version)
 // If all directory has and .env file has permission then redirect to main File
 if($err != 1)
 {
-
     require_once __DIR__ . '/public/index.php';
     die;
 }
@@ -141,3 +139,4 @@ if($err != 1)
 </div>
 </body>
 </html>
+

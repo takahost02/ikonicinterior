@@ -2,318 +2,211 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Utility;
-use App\Models\User;
-use App\Models\Invoice;
-use App\Models\InvoicePayment;
+use App\Models\BankAccount;
 use App\Models\BankTransfer;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Models\Retainer;
-use App\Models\RetainerPayment;
-
+use App\Models\Utility;
+use Illuminate\Http\Request;
 
 class BankTransferController extends Controller
 {
-    protected $invoiceData;
 
-    public function index()
+    public function index(Request $request)
     {
-        //
-    }
 
-    public function invoicePayWithbank(Request $request, $invoice_id)
-    {
-        $invoice                 = Invoice::find($invoice_id);
+        if(\Auth::user()->can('manage bank transfer'))
+        {
+            $account = BankAccount::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('holder_name', 'id');
+            $account->prepend('Select Account', '');
 
-        $this->invoiceData       = $invoice;
+            $query = BankTransfer::where('created_by', '=', \Auth::user()->creatorId());
 
-        $get_amount = $request->amount;
-
-        $rules = [
-           'receipt' => 'required',
-        ];
-
-
-        $validator = \Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            $messages = $validator->getMessageBag();
-
-            return redirect()->back()->with('error', $messages->first());
-        }
-
-
-        if (\Auth::check()) {
-            $settings = DB::table('settings')->where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('value', 'name');
-            $objUser     = \Auth::user();
-            $payment_setting = Utility::getCompanyPaymentSetting($invoice->created_by);
-            //            $this->setApiContext();
-        } else {
-            $user = User::where('id', $invoice->created_by)->first();
-            $settings = Utility::settingById($invoice->created_by);
-            $payment_setting = Utility::getCompanyPaymentSetting($invoice->created_by);
-            //            $this->non_auth_setApiContext($invoice->created_by);
-            $objUser = $user;
-        }
-
-
-        $dir = storage_path() . '/uploads/bank_receipt/';
-        if (!is_dir($dir)) {
-            \File::makeDirectory($dir, $mode = 0777, true, true);
-        }
-        $file_path = $request->receipt->getClientOriginalName();
-        $file = $request->file('receipt');
-        // dd($file);
-
-        $file->move($dir, $file_path);
-
-
-        try {
-            $order_id = strtoupper(str_replace('.', '', uniqid('', true)));
-
-            $payments = BankTransfer::create(
-                [
-                    'invoice_id' => $invoice->id,
-                    'order_id' => $order_id,
-                    'amount' => $get_amount,
-                    'status' => 'pending',
-                    'receipt' => !empty($file_path) ? $file_path : '',
-                    'created_by' => $invoice->created_by,
-                    'type' => __('invoice'),
-                ]
-            );
-
-            if (\Auth::check()) {
-                return redirect()->route('invoice.show', \Crypt::encrypt($invoice->id))->with('success', __('Payment successfully added.'));
-            } else {
-                return redirect()->back()->with('success', __(' Payment successfully added.'));
+            if(count(explode('to', $request->date)) > 1)
+            {
+                $date_range = explode(' to ', $request->date);
+                $query->whereBetween('date', $date_range);
             }
-        } catch (\Exception $e) {
-            if (\Auth::check()) {
-                return redirect()->route('invoice.show', \Crypt::encrypt($invoice->id))->with('error', __('Transaction has been failed.'));
-            } else {
-                return redirect()->back()->with('success', __('Transaction has been complted.'));
+            elseif(!empty($request->date))
+            {
+                $date_range = [$request->date , $request->date];
+                $query->whereBetween('date', $date_range);
             }
-        }
-    }
-
-    public function invoicpaymenteshow($id)
-    {
-       
-        $BankTransfer = BankTransfer::find($id);
-        
-        $details  = Invoice::find($BankTransfer->invoice_id);
-        $user_id        = $BankTransfer->created_by;
-
-        $settings = Utility::getCompanyPaymentSetting($user_id);
-        $bank_detail = $settings['bank_detail'];
-
-        return view('invoice.payment_view', compact('details', 'BankTransfer', 'bank_detail'));
-    }
-
-    public function invoicechangestatus($id,$response)
-    {
-        
-        $BankTransfer = BankTransfer::find($id);
-
-        $order_id = $BankTransfer->order_id;
-
-        $details  = Invoice::find($BankTransfer->invoice_id);
-
-        if (Auth::check()) {
-            $settings  = DB::table('settings')->where('created_by', '=', $BankTransfer->created_by)->get()->pluck('value', 'name');
-
-        } else {
-            $user = User::where('id', $details->created_by)->first();
-            $settings = Utility::settingById($details->created_by);
-        }
-
-        $setting = Utility::settingsById($details->created_by);
-
-        if ($response == 'Approval') {
-
-            $BankTransfer->status = 'Approved';
-
-            $payments = InvoicePayment::create(
-                [
-                    'invoice_id' => $details->id,
-                    'date' => date('Y-m-d'),
-                    'amount' => $BankTransfer->amount,
-                    'account_id' => 0,
-                    'payment_method' => 0,
-                    'order_id' => $order_id,
-                    'currency' => $setting['site_currency'],
-                    'txn_id' => '',
-                    'payment_type' => __('Bank Transfer'),
-                    'receipt' => $BankTransfer->receipt,
-                    'reference' => '',
-                    'description' => 'Invoice ' . Utility::invoiceNumberFormat($settings, $details->invoice_id),
-                ]
-            );
-
-            $BankTransfer->delete();
-
-            return redirect()->back()->with('success', __('Payment status successfully updated.'));
-        } else {
-            $BankTransfer->status           = 'Rejected';
-        }
-        $BankTransfer->save();
-
-        return redirect()->back()->with('success', __('Invoice payment request send successfully.'));
-    }
-
-    public function invoicedestroy($id)
-    {
-        $invoice = BankTransfer::where('id', $id)->delete();
-
-        return redirect()->back()->with(
-            'success',
-            'Bank transfer successfully deleted.'
-        );
-    }
-
-    public function retainerPayWithbank(Request $request, $retainer_id)
-    {
-        $retainer = Retainer::find($retainer_id);
-
-        // $this->invoiceData       = $invoice;
-
-        $get_amount = $request->amount;
 
 
-        if (\Auth::check()) {
-            $settings = DB::table('settings')->where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('value', 'name');
-            $objUser     = \Auth::user();
-            $payment_setting = Utility::getCompanyPaymentSetting($retainer->created_by);
-            //            $this->setApiContext();
-        } else {
-            $user = User::where('id', $retainer->created_by)->first();
-            $settings = Utility::settingById($retainer->created_by);
-            $payment_setting = Utility::getCompanyPaymentSetting($retainer->created_by);
-            //            $this->non_auth_setApiContext($invoice->created_by);
-            $objUser = $user;
-        }
-
-        $request->validate(
-            [
-                'receipt' => 'required',
-            ]
-        );
-
-        $dir = storage_path() . '/uploads/bank_receipt/';
-        if (!is_dir($dir)) {
-            \File::makeDirectory($dir, $mode = 0777, true, true);
-        }
-        $file_path = $request->receipt->getClientOriginalName();
-        $file = $request->file('receipt');
-        // dd($file);
-
-        $file->move($dir, $file_path);
-
-
-        try {
-            $order_id = strtoupper(str_replace('.', '', uniqid('', true)));
-
-            $payments = BankTransfer::create(
-                [
-                    'retainer_id' => $retainer->id,
-                    'order_id' => $order_id,
-                    'amount' => $get_amount,
-                    'status' => 'pending',
-                    'receipt' => !empty($file_path) ? $file_path : '',
-                    'created_by' => $retainer->created_by,
-                    'type' => __('retainer'),
-                ]
-            );
-
-
-            if (\Auth::check()) {
-                return redirect()->route('retainer.show', \Crypt::encrypt($retainer->id))->with('success', __('Payment successfully added.'));
-            } else {
-                return redirect()->back()->with('success', __(' Payment successfully added.'));
+            if(!empty($request->f_account))
+            {
+                $query->where('from_account', '=', $request->f_account);
             }
-        } catch (\Exception $e) {
-            if (\Auth::check()) {
-                return redirect()->route('retainer.show', \Crypt::encrypt($retainer->id))->with('error', __('Transaction has been failed.'));
-            } else {
-                return redirect()->back()->with('success', __('Transaction has been complted.'));
+            if(!empty($request->t_account))
+            {
+                $query->where('to_account', '=', $request->t_account);
+            }
+            $transfers = $query->with(['fromBankAccount','toBankAccount'])->get();
+
+            return view('bank-transfer.index', compact('transfers', 'account'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+    public function create()
+    {
+        if(\Auth::user()->can('create bank transfer'))
+        {
+            $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $bankAccount->prepend(__('Select Bank'), '');
+
+            return view('bank-transfer.create', compact('bankAccount'));
+        }
+        else
+        {
+            return response()->json(['error' => __('Permission denied.')], 401);
+        }
+    }
+
+    public function store(Request $request)
+    {
+        if(\Auth::user()->can('create bank transfer'))
+        {
+            $validator = \Validator::make(
+                $request->all(), [
+                                   'from_account' => 'required|numeric',
+                                   'to_account' => 'required|numeric',
+                                   'amount' => 'required|numeric',
+                                   'date' => 'required',
+                                   'description' => 'required'
+                               ]
+            );
+            if($validator->fails())
+            {
+                $messages = $validator->getMessageBag();
+
+                return redirect()->back()->with('error', $messages->first());
+            }
+
+            $from_bank = BankAccount::where('id', $request->from_account)->where('created_by', \Auth::user()->creatorId())->first();
+            if (isset($from_bank->opening_balance) && $from_bank->opening_balance < $request->amount) {
+                return redirect()->back()->with('error', __('You cannot transfer more than the available balance in the from account.'));
+            }
+
+            $transfer                 = new BankTransfer();
+            $transfer->from_account   = $request->from_account;
+            $transfer->to_account     = $request->to_account;
+            $transfer->amount         = $request->amount;
+            $transfer->date           = $request->date;
+            $transfer->payment_method = 0;
+            $transfer->reference      = $request->reference;
+            $transfer->description    = $request->description;
+            $transfer->created_by     = \Auth::user()->creatorId();
+            $transfer->save();
+
+            Utility::bankAccountBalance($request->from_account, $request->amount, 'debit');
+
+            Utility::bankAccountBalance($request->to_account, $request->amount, 'credit');
+
+            return redirect()->route('bank-transfer.index')->with('success', __('Amount successfully transfer.'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+    public function show()
+    {
+        return redirect()->route('bank-transfer.index');
+    }
+
+    public function edit(BankTransfer $transfer,$id)
+    {
+        if(\Auth::user()->can('edit bank transfer'))
+        {
+            $transfer = BankTransfer::where('id',$id)->first();
+            $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $bankAccount->prepend(__('Select Bank'), '');
+            
+            return view('bank-transfer.edit', compact('bankAccount', 'transfer'));
+        }
+        else
+        {
+            return response()->json(['error' => __('Permission denied.')], 401);
+        }
+    }
+
+    public function update(Request $request, BankTransfer $transfer,$id)
+    {
+        if(\Auth::user()->can('edit bank transfer'))
+        {
+            $transfer = BankTransfer::find($id);
+            $validator = \Validator::make(
+                $request->all(), [
+                                   'from_account' => 'required|numeric',
+                                   'to_account' => 'required|numeric',
+                                   'amount' => 'required|numeric',
+                                   'date' => 'required',
+                                   'description' => 'required'
+                               ]
+            );
+            if($validator->fails())
+            {
+                $messages = $validator->getMessageBag();
+
+                return redirect()->back()->with('error', $messages->first());
+            }
+
+            $from_bank = BankAccount::where('id', $request->from_account)->where('created_by', \Auth::user()->creatorId())->first();
+            if (isset($from_bank->opening_balance) && $from_bank->opening_balance < $request->amount) {
+                return redirect()->back()->with('error', __('You cannot transfer more than the available balance in the from account.'));
+            }
+
+            Utility::bankAccountBalance($transfer->from_account, $transfer->amount, 'credit');
+            Utility::bankAccountBalance($transfer->to_account, $transfer->amount, 'debit');
+
+            $transfer->from_account   = $request->from_account;
+            $transfer->to_account     = $request->to_account;
+            $transfer->amount         = $request->amount;
+            $transfer->date           = $request->date;
+            $transfer->payment_method = 0;
+            $transfer->reference      = $request->reference;
+            $transfer->description    = $request->description;
+            $transfer->save();
+
+
+            Utility::bankAccountBalance($request->from_account, $request->amount, 'debit');
+            Utility::bankAccountBalance($request->to_account, $request->amount, 'credit');
+
+            return redirect()->route('bank-transfer.index')->with('success', __('Amount successfully transfer updated.'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+
+    public function destroy(BankTransfer $BankTransfer)
+    {
+
+        if(\Auth::user()->can('delete bank transfer'))
+        {
+            if($BankTransfer->created_by == \Auth::user()->creatorId())
+            {
+                $BankTransfer->delete();
+
+                Utility::bankAccountBalance($BankTransfer->from_account, $BankTransfer->amount, 'credit');
+                Utility::bankAccountBalance($BankTransfer->to_account, $BankTransfer->amount, 'debit');
+
+                return redirect()->route('bank-transfer.index')->with('success', __('Amount transfer successfully deleted.'));
+            }
+            else
+            {
+                return redirect()->back()->with('error', __('Permission denied.'));
             }
         }
-    }
-
-
-    public function retainerpaymenteshow($id)
-    {
-        $BankTransfer = BankTransfer::find($id);
-
-        $details  = Retainer::find($BankTransfer->retainer_id);
-        
-        $user_id        = $BankTransfer->created_by;
-
-        $settings = Utility::getCompanyPaymentSetting($user_id);
-        $bank_detail = $settings['bank_detail'];
-
-        return view('retainer.retainer_view', compact('BankTransfer','details','bank_detail'));
-    }
-
-    public function retainerchangestatus($id,$response)
-    {
-        
-        $BankTransfer = BankTransfer::find($id);
-
-        $order_id = $BankTransfer->order_id;
-
-        $details  = Retainer::find($BankTransfer->retainer_id);
-
-        if (Auth::check()) {
-            $settings  = DB::table('settings')->where('created_by', '=', $BankTransfer->created_by)->get()->pluck('value', 'name');
-
-        } else {
-            $user = User::where('id', $details->created_by)->first();
-            $settings = Utility::settingById($details->created_by);
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
         }
-        $setting = Utility::settingsById($details->created_by);
-        if ($response == 'Approval') {
-
-            $BankTransfer->status = 'Approved';
-
-            $payments = RetainerPayment::create(
-                [
-                    'retainer_id' => $details->id,
-                    'date' => date('Y-m-d'),
-                    'amount' => $BankTransfer->amount,
-                    'account_id' => 0,
-                    'payment_method' => 0,
-                    'order_id' => $order_id,
-                    'currency' => $setting['site_currency'],
-                    'txn_id' => '',
-                    'payment_type' => __('Bank Transfer'),
-                    'receipt' => $BankTransfer->receipt,
-                    'reference' => '',
-                    'description' => 'Retainer ' . Utility::retainerNumberFormat($settings, $details->retainer_id),
-                ]
-            );
-
-            $BankTransfer->delete();
-
-            return redirect()->back()->with('success', __('Payment status successfully updated.'));
-        } else {
-            $BankTransfer->status           = 'Rejected';
-        }
-        $BankTransfer->save();
-
-        return redirect()->back()->with('success', __('Invoice payment request send successfully.'));
-    }  
-    
-    public function retainerdestroy($id)
-    {
-        $invoice = BankTransfer::where('id', $id)->delete();
-        return redirect()->back()->with(
-            'success',
-            'Bank transfer successfully deleted.'
-        );
     }
-
 }

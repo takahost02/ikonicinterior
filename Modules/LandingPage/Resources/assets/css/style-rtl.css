@@ -8013,7 +8013,7 @@ textarea.is-invalid.dataTable-input {
 }
 
 .border-primary {
-    border-color: #6FD943 !important;
+    border-color: #51459d !important;
 }
 
 .border-secondary {
@@ -18023,7 +18023,7 @@ body.theme-10 .card .card-header h5:after, body.theme-10 .card .card-header .h5:
         bottom: 20px;
         left: 20px;
         border-radius: 20px;
-        box-shadow: -2.61824px 26px 49px rgba(182, 186, 203, 0.3);
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
     }
 
     .dash-sidebar.light-sidebar:not(.transprent-bg) .navbar-content {
@@ -18417,7 +18417,7 @@ body:not(.minimenu) .dash-sidebar .dash-submenu .dash-submenu .dash-submenu > .d
         left: calc(255px + 40px);
         right: 30px;
         border-radius: 20px;
-        box-shadow: -2.61824px 26px 49px rgba(182, 186, 203, 0.3);
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
     }
 
     .dash-header:not(.transprent-bg) .header-wrapper {

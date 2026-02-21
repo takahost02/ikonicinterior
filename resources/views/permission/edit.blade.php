@@ -1,21 +1,18 @@
-{{ Form::model($permission, ['route' => ['permissions.update', $permission->id], 'method' => 'PUT']) }}
-<div class="modal-body">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="form-group">
-                {{ Form::label('name', __('Name')) }}
-                {{ Form::text('name', null, ['class' => 'form-control', 'placeholder' => __('Enter Permission Name')]) }}
-                @error('name')
-                    <span class="invalid-name" role="alert">
-                        <strong class="text-danger">{{ $message }}</strong>
-                    </span>
-                @enderror
-            </div>
-        </div>
+
+{{Form::model($permission, array('route' => array('permissions.update', $permission->id), 'method' => 'PUT')) }}
+<div class="card-body">
+    <div class="form-group">
+        {{Form::label('name',__('Name'))}}
+        {{Form::text('name',null,array('class'=>'form-control','placeholder'=>__('Enter Permission Name')))}}
+        @error('name')
+        <span class="invalid-name" role="alert">
+                    <strong class="text-danger">{{ $message }}</strong>
+                </span>
+        @enderror
     </div>
 </div>
 <div class="modal-footer">
-    <input type="button" value="{{ __('Cancel') }}" class="btn btn-light" data-bs-dismiss="modal">
-    <input type="submit" value="{{ __('Update') }}" class="btn btn-primary">
+    <button type="button" class="btn dark btn-outline" data-dismiss="modal">{{__('Cancel')}}</button>
+    {{Form::submit(__('Update'),array('class'=>'btn green'))}}
 </div>
-{{ Form::close() }}
+{{Form::close()}}

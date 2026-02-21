@@ -17,13 +17,14 @@ class CreatePaymentsTable extends Migration
             'payments', function (Blueprint $table){
             $table->bigIncrements('id');
             $table->date('date');
-            $table->decimal('amount',15,2)->default('0.00');
-            $table->integer('account_id')->nullable();
-            $table->integer('vender_id')->nullable();
-            $table->text('description');
-            $table->integer('category_id')->nullable();
+            $table->decimal('amount', 16, 2)->default('0.0');
+            $table->integer('account_id');
+            $table->integer('chart_account_id')->default(0);
+            $table->integer('vender_id');
+            $table->text('description')->nullable();
+            $table->integer('category_id');
             $table->string('recurring')->nullable();
-            $table->integer('payment_method')->nullable();
+            $table->integer('payment_method');
             $table->string('reference')->nullable();
             $table->string('add_receipt')->nullable();
             $table->integer('created_by')->default('0');

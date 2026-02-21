@@ -15,8 +15,9 @@ class VerifyEmailController extends Controller
      * @param  \Illuminate\Foundation\Auth\EmailVerificationRequest  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function __invoke(EmailVerificationRequest $request)
+    public function __invoke(EmailVerificationRequest $request, $id)
     {
+
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->intended(RouteServiceProvider::HOME.'?verified=1');
         }
@@ -25,6 +26,6 @@ class VerifyEmailController extends Controller
             event(new Verified($request->user()));
         }
 
-        return redirect()->intended(RouteServiceProvider::HOME.'?verified=1');
+        return redirect()->intended(RouteServiceProvider::HOME.'?verified=1');;
     }
 }

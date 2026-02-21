@@ -71,8 +71,7 @@ class CertificateList extends ListResource
                 $options['deviceSid'],
         ]);
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->create('POST', $this->uri, [], $data, $headers);
+        $payload = $this->version->create('POST', $this->uri, [], $data);
 
         return new CertificateInstance(
             $this->version,

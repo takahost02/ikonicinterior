@@ -2,40 +2,268 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
+use App\Models\BankAccount;
+use App\Models\Coupon;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
-use App\Models\Retainer;
-use App\Models\RetainerPayment;
+use App\Models\Order;
+use App\Models\Plan;
 use App\Models\User;
+use App\Models\UserCoupon;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use YooKassa\Client;
+use App\Models\Customer;
 
 class YooKassaController extends Controller
 {
-    public function invoicePayWithYookassa(Request $request)
+    public function planPayWithYooKassa(Request $request)
     {
-        $invoice_id = decrypt($request->invoice_id);
-
-        $invoice = Invoice::find($invoice_id);
-
-        $payment_setting = Utility::getCompanyPaymentSetting($invoice->created_by);
+        $payment_setting = Utility::getAdminPaymentSetting();
 
         $yookassa_shop_id = $payment_setting['yookassa_shop_id'];
+
         $yookassa_secret_key = $payment_setting['yookassa_secret'];
-        $currency = isset($payment_setting['site_currency']) ? $payment_setting['site_currency'] : 'RUB';
+        $currency = isset($payment_setting['currency']) ? $payment_setting['currency'] : 'RUB';
+
+        $planID = \Illuminate\Support\Facades\Crypt::decrypt($request->plan_id);
+        $authuser = Auth::user();
+        $plan = Plan::find($planID);
+        if ($plan) {
+
+            $get_amount = $plan->price;
+
+            if (!empty($request->coupon)) {
+                $coupons = Coupon::where('code', strtoupper($request->coupon))->where('is_active', '1')->first();
+                if (!empty($coupons)) {
+                    $usedCoupun = $coupons->used_coupon();
+                    $discount_value = ($plan->price / 100) * $coupons->discount;
+
+                    $get_amount = $plan->price - $discount_value;
+
+                    if ($coupons->limit == $usedCoupun) {
+                        return redirect()->back()->with('error', __('This coupon code has expired.'));
+                    }
+
+                    if ($get_amount <= 0) {
+                        $authuser = Auth::user();
+                        $authuser->plan = $plan->id;
+                        $authuser->save();
+                        $assignPlan = $authuser->assignPlan($plan->id);
+                        if ($assignPlan['is_success'] == true && !empty($plan)) {
+                            if (!empty($authuser->payment_subscription_id) && $authuser->payment_subscription_id != '') {
+                                try {
+                                    $authuser->cancel_subscription($authuser->id);
+                                } catch (\Exception $exception) {
+                                    \Log::debug($exception->getMessage());
+                                }
+                            }
+                            $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+                            $userCoupon = new UserCoupon();
+
+                            $userCoupon->user = $authuser->id;
+                            $userCoupon->coupon = $coupons->id;
+                            $userCoupon->order = $orderID;
+                            $userCoupon->save();
+                            Order::create(
+                                [
+                                    'order_id' => $orderID,
+                                    'name' => null,
+                                    'email' => null,
+                                    'card_number' => null,
+                                    'card_exp_month' => null,
+                                    'card_exp_year' => null,
+                                    'plan_name' => $plan->name,
+                                    'plan_id' => $plan->id,
+                                    'price' => $get_amount == null ? 0 : $get_amount,
+                                    'price_currency' => $currency,
+                                    'txn_id' => '',
+                                    'payment_type' => 'PayTR',
+                                    'payment_status' => 'success',
+                                    'receipt' => null,
+                                    'user_id' => $authuser->id,
+                                ]
+                            );
+                            $assignPlan = $authuser->assignPlan($plan->id);
+                            return redirect()->route('plans.index')->with('success', __('Plan Successfully Activated'));
+                        }
+                    }
+                } else {
+                    return redirect()->back()->with('error', __('This coupon code is invalid or has expired.'));
+                }
+            }
+
+            try {
+                if (is_int((int) $yookassa_shop_id)) {
+                    $client = new Client();
+                    $client->setAuth((int) $yookassa_shop_id, $yookassa_secret_key);
+                    $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+                    $product = !empty($plan->name) ? $plan->name : 'Life time';
+                    $payment = $client->createPayment(
+                        array(
+                            'amount' => array(
+                                'value' => $get_amount,
+                                'currency' => $currency,
+                            ),
+                            'confirmation' => array(
+                                'type' => 'redirect',
+                                'return_url' => route('plan.yookassa.status', [$plan->id, 'order_id' => $orderID, 'price' => $get_amount, 'coupon' => $request->coupon]),
+                            ),
+                            'capture' => true,
+                            'description' => 'Заказ №1',
+                        ),
+                        uniqid('', true)
+                    );
+                    $authuser = Auth::user();
+                    $authuser->plan = $plan->id;
+                    $authuser->save();
+
+                    if (!empty($authuser->payment_subscription_id) && $authuser->payment_subscription_id != '') {
+                        try {
+                            $authuser->cancel_subscription($authuser->id);
+                        } catch (\Exception $exception) {
+                            Log::debug($exception->getMessage());
+                        }
+                    }
+
+                    Session::put('payment_id', $payment['id']);
+                    if ($payment['confirmation']['confirmation_url'] != null) {
+                        return redirect($payment['confirmation']['confirmation_url']);
+                    } else {
+                        return redirect()->route('plan.index')->with('error', 'Something went wrong, Please try again');
+                    }
+
+                    // return redirect()->route('plans.index')->with('success', __('Plan Successfully Activated'));
+
+                } else {
+                    return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
+                }
+            } catch (\Throwable $th) {
+                return redirect()->back()->with('error', $th);
+            }
+        }
+    }
+    public function planGetYooKassaStatus(Request $request, $planId)
+    {
+
+        $payment_setting = Utility::getAdminPaymentSetting();
+        $yookassa_shop_id = $payment_setting['yookassa_shop_id'];
+        $yookassa_secret_key = $payment_setting['yookassa_secret'];
+        $currency = isset($payment_setting['currency']) ? $payment_setting['currency'] : 'USD';
+
+        if (is_int((int) $yookassa_shop_id)) {
+            $client = new Client();
+            $client->setAuth((int) $yookassa_shop_id, $yookassa_secret_key);
+            $paymentId = Session::get('payment_id');
+
+            Session::forget('payment_id');
+
+            if ($paymentId == null) {
+                return redirect()->back()->with('error', __('Transaction Unsuccesfull'));
+            }
+
+            $payment = $client->getPaymentInfo($paymentId);
+
+            if (isset($payment) && $payment->status == "succeeded") {
+
+                $plan = Plan::find($planId);
+                try {
+                    $user = \Auth::user();
+                    $planID = $request->plan_id;
+                    $couponCode = $request->coupon;
+                    $getAmount = $request->price;
+
+                    if ($couponCode != 0) {
+                        $coupons = Coupon::where('code', strtoupper($couponCode))->where('is_active', '1')->first();
+                        $request['coupon_id'] = $coupons->id;
+                    } else {
+                        $coupons = null;
+                    }
+                    $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+
+                    Utility::referralTransaction($plan);
+
+                    $order = new Order();
+                    $order->order_id = $orderID;
+                    $order->name = $user->name;
+                    $order->card_number = '';
+                    $order->card_exp_month = '';
+                    $order->card_exp_year = '';
+                    $order->plan_name = $plan->name;
+                    $order->plan_id = $plan->id;
+                    $order->price = $getAmount;
+                    $order->price_currency = $currency;
+                    $order->txn_id = $request->orderID;
+                    $order->payment_type = __('Yookassa');
+                    $order->payment_status = 'success';
+                    $order->txn_id = '';
+                    $order->receipt = '';
+                    $order->user_id = $user->id;
+                    $order->save();
+
+                    $assignPlan = $user->assignPlan($plan->id);
+
+                    $coupons = Coupon::find($request->coupon_id);
+                    if (!empty($request->coupon_id)) {
+                        if (!empty($coupons)) {
+                            $userCoupon = new UserCoupon();
+                            $userCoupon->user = $user->id;
+                            $userCoupon->coupon = $coupons->id;
+                            $userCoupon->order = $request->orderID;
+                            $userCoupon->save();
+                            $usedCoupun = $coupons->used_coupon();
+                            if ($coupons->limit <= $usedCoupun) {
+                                $coupons->is_active = 0;
+                                $coupons->save();
+                            }
+                        }
+                    }
+
+                    if ($assignPlan['is_success']) {
+                        return redirect()->route('plans.index')->with('success', __('Plan activated Successfully.'));
+                    } else {
+                        return redirect()->route('plans.index')->with('error', __($assignPlan['error']));
+                    }
+                } catch (Exception $e) {
+                    return redirect()->route('plans.index')->with('error', __($e));
+                }
+            } else {
+                return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
+            }
+        }
+    }
+
+    public function invoicePayWithYookassa(Request $request)
+    {
+        $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
+        $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','yookassa')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Yookassa.'));
+        }
+        
+        $this->invoiceData = $invoice;
+        $user = User::find($invoice->created_by);
+        $company_payment_setting = Utility::getCompanyPaymentSetting($user->id);
+        $settings = Utility::settingsById($invoice->created_by);
+        $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
         $get_amount = $request->amount;
+
+        $yookassa_shop_id = $company_payment_setting['yookassa_shop_id'];
+        $yookassa_secret_key = $company_payment_setting['yookassa_secret'];
+        $currency = isset($company_payment_setting['site_currency']) ? $company_payment_setting['site_currency'] : 'RUB';
 
         try {
             if ($invoice) {
-
-
-                if (is_int((int)$yookassa_shop_id)) {
+                if (is_int((int) $yookassa_shop_id)) {
                     $client = new Client();
-                    $client->setAuth((int)$yookassa_shop_id, $yookassa_secret_key);
+                    $client->setAuth((int) $yookassa_shop_id, $yookassa_secret_key);
                     $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
                     $payment = $client->createPayment(
                         array(
@@ -47,7 +275,7 @@ class YooKassaController extends Controller
                                 'type' => 'redirect',
                                 'return_url' => route('invoice.yookassa.status', [
                                     'invoice_id' => $invoice->id,
-                                    'amount' => $get_amount
+                                    'amount' => $get_amount,
                                 ]),
                             ),
                             'capture' => true,
@@ -56,12 +284,12 @@ class YooKassaController extends Controller
                         uniqid('', true)
                     );
 
-                    Session::put('invoice_payment_id', $payment['id']);
+                    Session::put('yookassa_payment_id', $payment['id']);
 
                     if ($payment['confirmation']['confirmation_url'] != null) {
                         return redirect($payment['confirmation']['confirmation_url']);
                     } else {
-                        return redirect()->route('plans.index')->with('error', 'Something went wrong, Please try again');
+                        return redirect()->route('invoice.index')->with('error', 'Something went wrong, Please try again');
                     }
                 } else {
                     return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
@@ -70,374 +298,134 @@ class YooKassaController extends Controller
                 return redirect()->back()->with('error', 'Invoice not found.');
             }
         } catch (\Throwable $e) {
+
             return redirect()->back()->with('error', __($e));
         }
     }
-
     public function getInvociePaymentStatus(Request $request)
     {
-        $get_amount = $request->amount;
 
         $invoice = Invoice::find($request->invoice_id);
-        $user = User::where('id', $invoice->created_by)->first();
+        $user = User::find($invoice->created_by);
 
-        $payment_setting = Utility::getCompanyPaymentSetting($user->id);
-        $yookassa_shop_id = $payment_setting['yookassa_shop_id'];
-        $yookassa_secret_key = $payment_setting['yookassa_secret'];
-        $setting = Utility::settingsById($invoice->created_by);
+        $settings= Utility::settingsById($invoice->created_by);
+        $company_payment_setting = Utility::getCompanyPaymentSetting($user->id);
 
-        if (Auth::check()) {
-            $settings = \DB::table('settings')->where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('value', 'name');
-            $objUser     = \Auth::user();
-            $payment_setting = Utility::getCompanyPaymentSettingWithOutAuth($invoice->created_by);
-        } else {
-            $user = User::where('id', $invoice->created_by)->first();
-            $settings = Utility::settingById($invoice->created_by);
-            $payment_setting = Utility::getCompanyPaymentSettingWithOutAuth($invoice->created_by);
-            $objUser = $user;
-        }
-
-        if ($invoice) {
-            try {
+        $yookassa_shop_id = $company_payment_setting['yookassa_shop_id'];
+        $yookassa_secret_key = $company_payment_setting['yookassa_secret'];
+        if ($invoice)
+        {
+            if (empty($request->PayerID || empty($request->token)))
+            {
+                return redirect()->route('invoice.show', $request->invoice_id)->with('error', __('Payment failed'));
+            }
+            $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+            try
+            {
                 if (is_int((int)$yookassa_shop_id)) {
                     $client = new Client();
                     $client->setAuth((int)$yookassa_shop_id, $yookassa_secret_key);
-                    $paymentId = Session::get('invoice_payment_id');
+                    $paymentId = Session::get('yookassa_payment_id');
 
                     if ($paymentId == null) {
                         return redirect()->back()->with('error', __('Transaction Unsuccesfull'));
                     }
                     $payment = $client->getPaymentInfo($paymentId);
-
-                    Session::forget('invoice_payment_id');
-
+                    Session::forget('yookassa_payment_id');
                     if (isset($payment) && $payment->status == "succeeded") {
 
-                        $user = auth()->user();
-                        try {
-                            $order_id = strtoupper(str_replace('.', '', uniqid('', true)));
-                            $payments = InvoicePayment::create(
-                                [
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','yookassa')->first();
+                    $invoice_payment                 = new InvoicePayment();
+                    $invoice_payment->invoice_id     = $request->invoice_id;
+                    $invoice_payment->date           = Date('Y-m-d');
+                    $invoice_payment->amount         = $request->amount;
+                    $invoice_payment->account_id         = $account->id;
+                    $invoice_payment->payment_method         = 0;
+                    $invoice_payment->order_id      =$orderID;
+                    $invoice_payment->payment_type   = 'Yookasa';
+                    $invoice_payment->receipt     = '';
+                    $invoice_payment->reference     = '';
+                    $invoice_payment->description     = 'Invoice ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id);
+                    $invoice_payment->save();
 
-                                    'invoice_id' => $invoice->id,
-                                    'date' => date('Y-m-d'),
-                                    'amount' => $get_amount,
-                                    'account_id' => 0,
-                                    'payment_method' => 0,
-                                    'order_id' => $order_id,
-                                    'currency' => $setting['site_currency'],
-                                    'txn_id' => '',
-                                    'payment_type' => __('Yookassa'),
-                                    'receipt' => '',
-                                    'reference' => '',
-                                    'description' => 'Invoice ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id),
-                                ]
-                            );
+                    if($invoice->getDue() <= 0)
+                    {
+                        $invoice->status = 4;
+                        $invoice->save();
+                    }
+                    elseif(($invoice->getDue() - $invoice_payment->amount) == 0)
+                    {
+                        $invoice->status = 4;
+                        $invoice->save();
+                    }
+                    else
+                    {
+                        $invoice->status = 3;
+                        $invoice->save();
+                    }
 
-                            if ($invoice->getDue() <= 0) {
-                                $invoice->status = 4;
-                                $invoice->save();
-                            } elseif (($invoice->getDue() - $payments->amount) == 0) {
-                                $invoice->status = 4;
-                                $invoice->save();
-                            } elseif ($invoice->getDue() > 0) {
-                                $invoice->status = 3;
-                                $invoice->save();
-                            } else {
-                                $invoice->status = 2;
-                                $invoice->save();
-                            }
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'yookassa');                        
 
-                            $invoicePayment              = new \App\Models\Transaction();
-                            $invoicePayment->user_id     = $invoice->customer_id;
-                            $invoicePayment->user_type   = 'Customer';
-                            $invoicePayment->type        = 'Yookassa';
-                            $invoicePayment->created_by  = \Auth::check() ? \Auth::user()->id : $invoice->customer_id;
-                            $invoicePayment->payment_id  = $invoicePayment->id;
-                            $invoicePayment->category    = 'Invoice';
-                            $invoicePayment->amount      = $get_amount;
-                            $invoicePayment->date        = date('Y-m-d');
-                            $invoicePayment->created_by  = \Auth::check() ? \Auth::user()->creatorId() : $invoice->created_by;
-                            $invoicePayment->payment_id  = $payments->id;
-                            $invoicePayment->description = 'Invoice ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id);
-                            $invoicePayment->account     = 0;
+                    //for customer balance update
+                    Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
-                            \App\Models\Transaction::addTransaction($invoicePayment);
-
-                            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
-                            Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
-
-                            //Twilio Notification
-                            $setting  = Utility::settingsById($objUser->creatorId());
-                            $customer = Customer::find($invoice->customer_id);
-                            if (isset($setting['payment_notification']) && $setting['payment_notification'] == 1) {
-                                $uArr = [
-                                    'invoice_id' => $payments->id,
-                                    'payment_name' => $customer->name,
-                                    'payment_amount' => $get_amount,
-                                    'payment_date' => $objUser->dateFormat($request->date),
-                                    'type' => 'Paypal',
-                                    'user_name' => $objUser->name,
-                                ];
-
-                                Utility::send_twilio_msg($customer->contact, 'new_payment', $uArr, $invoice->created_by);
-                            }
-
-                            // webhook
-                            $module = 'New Payment';
-
-                            $webhook =  Utility::webhookSetting($module, $invoice->created_by);
-
-                            if ($webhook) {
-
-                                $parameter = json_encode($invoice);
-
-                                // 1 parameter is  URL , 2 parameter is data , 3 parameter is method
-
-                                $status = Utility::WebhookCall($webhook['url'], $parameter, $webhook['method']);
-
-                            }
-
-
-                            if (Auth::check()) {
-                                return redirect()->back()->with('success', __(' Payment successfully added.'));
-                            } else {
-                                return redirect()->back()->with('success', __(' Transaction fail.'));
-                            }
-                        } catch (\Exception $e) {
-                            return redirect()->back()->with('error', __(' Transaction fail.'));
+                    //For Notification
+                    $setting  = Utility::settingsById($invoice->created_by);
+                    $customer = Customer::find($invoice->customer_id);
+                    $notificationArr = [
+                            'payment_price' => $request->amount,
+                            'invoice_payment_type' => 'Aamarpay',
+                            'customer_name' => $customer->name,
+                        ];
+                    //Slack Notification
+                    if(isset($settings['payment_notification']) && $settings['payment_notification'] ==1)
+                    {
+                        Utility::send_slack_msg('new_invoice_payment', $notificationArr,$invoice->created_by);
+                    }
+                    //Telegram Notification
+                    if(isset($settings['telegram_payment_notification']) && $settings['telegram_payment_notification'] == 1)
+                    {
+                        Utility::send_telegram_msg('new_invoice_payment', $notificationArr,$invoice->created_by);
+                    }
+                    //Twilio Notification
+                    if(isset($settings['twilio_payment_notification']) && $settings['twilio_payment_notification'] ==1)
+                    {
+                        Utility::send_twilio_msg($customer->contact,'new_invoice_payment', $notificationArr,$invoice->created_by);
+                    }
+                    //webhook
+                    $module ='New Invoice Payment';
+                    $webhook=  Utility::webhookSetting($module,$invoice->created_by);
+                    if($webhook)
+                    {
+                        $parameter = json_encode($invoice_payment);
+                        $status = Utility::WebhookCall($webhook['url'],$parameter,$webhook['method']);
+                        if($status == true)
+                        {
+                            return redirect()->route('invoice.link.copy', \Crypt::encrypt($invoice->id))->with('error', __('Transaction has been failed.'));
                         }
-                    } else {
-                        return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
-                    }
-                }
-            } catch (\Exception $e) {
-                if (Auth::check()) {
-                    return redirect()->back()->with('error', __(' Transaction fail.'));
-                } else {
-                    return redirect()->route('invoice.show', encrypt($request->invoice_id))->with('success', $e->getMessage());
-                    return redirect()->back()->with('success', __(' Payment successfully added.'));
-                }
-            }
-        } else {
-            if (Auth::check()) {
-                return redirect()->back()->with('error', __('Invoice not found.'));
-            } else {
-                return redirect()->back()->with('error', __('Invoice not found.'));
-            }
-        }
-    }
-
-    public function retainerPayWithYookassa(Request $request)
-    {
-        $retainer_id = decrypt($request->retainer_id);
-
-        $retainer = Retainer::find($retainer_id);
-
-        $payment_setting = Utility::getCompanyPaymentSetting($retainer->created_by);
-
-        $yookassa_shop_id = $payment_setting['yookassa_shop_id'];
-        $yookassa_secret_key = $payment_setting['yookassa_secret'];
-        $currency = isset($payment_setting['site_currency']) ? $payment_setting['site_currency'] : 'RUB';
-        $get_amount = $request->amount;
-
-        try {
-            if ($retainer) {
-
-
-                if (is_int((int)$yookassa_shop_id)) {
-                    $client = new Client();
-                    $client->setAuth((int)$yookassa_shop_id, $yookassa_secret_key);
-                    $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
-                    $payment = $client->createPayment(
-                        array(
-                            'amount' => array(
-                                'value' => $get_amount,
-                                'currency' => $currency,
-                            ),
-                            'confirmation' => array(
-                                'type' => 'redirect',
-                                'return_url' => route('retainer.yookassa.status', [
-                                    'retainer_id' => $retainer->id,
-                                    'amount' => $get_amount
-                                ]),
-                            ),
-                            'capture' => true,
-                            'description' => 'Заказ №1',
-                        ),
-                        uniqid('', true)
-                    );
-
-                    Session::put('retainer_payment_id', $payment['id']);
-
-                    if ($payment['confirmation']['confirmation_url'] != null) {
-                        return redirect($payment['confirmation']['confirmation_url']);
-                    } else {
-                        return redirect()->route('plans.index')->with('error', 'Something went wrong, Please try again');
-                    }
-                } else {
-                    return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
-                }
-            } else {
-                return redirect()->back()->with('error', 'Retainer not found.');
-            }
-        } catch (\Throwable $e) {
-            return redirect()->back()->with('error', __($e));
-        }
-    }
-
-    public function getRetainerPaymentStatus(Request $request)
-    {
-        $get_amount = $request->amount;
-
-        $retainer = Retainer::find($request->retainer_id);
-        $user = User::where('id', $retainer->created_by)->first();
-
-        $payment_setting = Utility::getCompanyPaymentSetting($user->id);
-        $yookassa_shop_id = $payment_setting['yookassa_shop_id'];
-        $yookassa_secret_key = $payment_setting['yookassa_secret'];
-        $setting = Utility::settingsById($retainer->created_by);
-
-        if (Auth::check()) {
-            $settings = \DB::table('settings')->where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('value', 'name');
-            $objUser     = \Auth::user();
-            $payment_setting = Utility::getCompanyPaymentSettingWithOutAuth($retainer->created_by);
-         
-        } else {
-            $user = User::where('id', $retainer->created_by)->first();
-            $settings = Utility::settingById($retainer->created_by);
-            $payment_setting = Utility::getCompanyPaymentSettingWithOutAuth($retainer->created_by);
-         
-            $objUser = $user;
-        }
-
-        if ($retainer) {
-            try {
-                if (is_int((int)$yookassa_shop_id)) {
-                    $client = new Client();
-                    $client->setAuth((int)$yookassa_shop_id, $yookassa_secret_key);
-                    $paymentId = Session::get('retainer_payment_id');
-
-                    if ($paymentId == null) {
-                        return redirect()->back()->with('error', __('Transaction Unsuccesfull'));
-                    }
-                    $payment = $client->getPaymentInfo($paymentId);
-
-                    Session::forget('retainer_payment_id');
-
-                    if (isset($payment) && $payment->status == "succeeded") {
-
-                        $user = auth()->user();
-                        try {
-                            $order_id = strtoupper(str_replace('.', '', uniqid('', true)));
-                            $payments = RetainerPayment::create(
-                                [
-                
-                                    'retainer_id' => $retainer->id,
-                                    'date' => date('Y-m-d'),
-                                    'amount' => $get_amount,
-                                    'account_id' => 0,
-                                    'payment_method' => 0,
-                                    'order_id' => $order_id,
-                                    'currency' => $setting['site_currency'],
-                                    'txn_id' => '',
-                                    'payment_type' => __('Yookassa'),
-                                    'receipt' => '',
-                                    'reference' => '',
-                                    'description' => 'Retainer ' . Utility::retainerNumberFormat($settings, $retainer->retainer_id),
-                                ]
-                            );
-                
-                            if ($retainer->getDue() <= 0) {
-                                $retainer->status = 4;
-                                $retainer->save();
-                            } elseif (($retainer->getDue() - $payments->amount) == 0) {
-                                $retainer->status = 4;
-                                $retainer->save();
-                            } else {
-                                $retainer->status = 3;
-                                $retainer->save();
-                            }
-                
-                            $retainerPayment              = new \App\Models\Transaction();
-                            $retainerPayment->user_id     = $retainer->customer_id;
-                            $retainerPayment->user_type   = 'Customer';
-                            $retainerPayment->type        = 'Yookassa';
-                            $retainerPayment->created_by  = \Auth::check() ? \Auth::user()->id : $retainer->customer_id;
-                            $retainerPayment->payment_id  = $retainerPayment->id;
-                            $retainerPayment->category    = 'Retainer';
-                            $retainerPayment->amount      = $get_amount;
-                            $retainerPayment->date        = date('Y-m-d');
-                            $retainerPayment->created_by  = \Auth::check() ? \Auth::user()->creatorId() : $retainer->created_by;
-                            $retainerPayment->payment_id  = $payments->id;
-                            $retainerPayment->description = 'Retainer ' . Utility::retainerNumberFormat($settings, $retainer->retainer_id);
-                            $retainerPayment->account     = 0;
-                
-                            \App\Models\Transaction::addTransaction($retainerPayment);
-
-                            Utility::updateUserBalance('customer', $retainer->customer_id, $request->amount, 'debit');
-
-                            Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
-
-                            //Twilio Notification
-                            $setting  = Utility::settingsById($objUser->creatorId());
-                            $customer = Customer::find($retainer->customer_id);
-                            if (isset($setting['payment_notification']) && $setting['payment_notification'] == 1) {
-                                $uArr = [
-                                    'retainer_id' => $payments->id,
-                                    'payment_name' => $customer->name,
-                                    'payment_amount' => $get_amount,
-                                    'payment_date' => $objUser->dateFormat($request->date),
-                                    'type' => 'Paypal',
-                                    'user_name' => $objUser->name,
-                                ];
-
-                                Utility::send_twilio_msg($customer->contact, 'new_payment', $uArr, $retainer->created_by);
-                            }
-
-                            // webhook
-                            $module = 'New Payment';
-
-                            $webhook =  Utility::webhookSetting($module, $retainer->created_by);
-
-                            if ($webhook) {
-
-                                $parameter = json_encode($retainer);
-
-                                // 1 parameter is  URL , 2 parameter is data , 3 parameter is method
-
-                                $status = Utility::WebhookCall($webhook['url'], $parameter, $webhook['method']);
-
-                            }
-
-
-                            if (Auth::check()) {
-                             
-                                return redirect()->back()->with('success', __(' Payment successfully added.'));
-                            } else {
-                                return redirect()->back()->with('success', __(' Transaction fail.'));
-                            }
-                        } catch (\Exception $e) {
-                            return redirect()->back()->with('error', __(' Transaction fail.'));
+                        else
+                        {
+                            return redirect()->back()->with('error', __('Payment successfully, Webhook call failed.'));
                         }
-                    } else {
-                        return redirect()->back()->with('error', 'Please Enter  Valid Shop Id Key');
                     }
+                    return redirect()->route('invoice.link.copy', \Crypt::encrypt($request->invoice_id))->with('success', __('Invoice paid Successfully!'));
                 }
-            } catch (\Exception $e) {
-                if (Auth::check()) {
-                    return redirect()->back()->with('error', __(' Transaction fail.'));
-                } else {
-                    return redirect()->back()->with('success', __(' Payment successfully added.'));
+
+                else
+                {
+                    return redirect()->route('invoice.link.copy', \Crypt::encrypt($request->invoice_id))->with('error', __('Transaction fail'));
                 }
+                }
+            }
+            catch (\Exception $e)
+            {
+                return redirect()->route('invoice.link.copy', \Illuminate\Support\Facades\Crypt::encrypt($request->invoice_id))->with('success',$e->getMessage());
             }
         } else {
-            if (Auth::check()) {
-                return redirect()->back()->with('error', __('Retainer not found.'));
-            } else {
-                return redirect()->back()->with('error', __('Retainer not found.'));
-            }
+            return redirect()->route('invoice.link.copy', \Illuminate\Support\Facades\Crypt::encrypt($request->invoice_id))->with('success', __('Invoice not found.'));
         }
+
     }
 }

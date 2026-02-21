@@ -27,12 +27,10 @@ use Twilio\Base\BaseClient as BaseClient;
  * @property Events $events
  * @property FlexApi $flexApi
  * @property FrontlineApi $frontlineApi
- * @property Iam $iam
  * @property Insights $insights
  * @property Intelligence $intelligence
  * @property IpMessaging $ipMessaging
  * @property Lookups $lookups
- * @property Marketplace $marketplace
  * @property Messaging $messaging
  * @property Microvisor $microvisor
  * @property Monitor $monitor
@@ -107,12 +105,10 @@ class Client extends BaseClient {
     protected $_events;
     protected $_flexApi;
     protected $_frontlineApi;
-    protected $_iam;
     protected $_insights;
     protected $_intelligence;
     protected $_ipMessaging;
     protected $_lookups;
-    protected $_marketplace;
     protected $_messaging;
     protected $_microvisor;
     protected $_monitor;
@@ -235,17 +231,6 @@ class Client extends BaseClient {
         return $this->_frontlineApi;
     }
     /**
-     * Access the Iam Twilio Domain
-     *
-     * @return Iam Iam Twilio Domain
-     */
-    protected function getIam(): Iam {
-        if (!$this->_iam) {
-            $this->_iam = new Iam($this);
-        }
-        return $this->_iam;
-    }
-    /**
      * Access the Insights Twilio Domain
      *
      * @return Insights Insights Twilio Domain
@@ -288,17 +273,6 @@ class Client extends BaseClient {
             $this->_lookups = new Lookups($this);
         }
         return $this->_lookups;
-    }
-    /**
-     * Access the Marketplace Twilio Domain
-     *
-     * @return Marketplace Marketplace Twilio Domain
-     */
-    protected function getMarketplace(): Marketplace {
-        if (!$this->_marketplace) {
-            $this->_marketplace = new Marketplace($this);
-        }
-        return $this->_marketplace;
     }
     /**
      * Access the Messaging Twilio Domain

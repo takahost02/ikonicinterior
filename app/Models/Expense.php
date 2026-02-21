@@ -7,16 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     protected $fillable = [
-        'category_id','description','amount','date','project_id','user_id','attachment','created_by'
+        'name',
+        'date',
+        'description',
+        'amount',
+        'attachment',
+        'project_id',
+        'task_id',
+        'created_by',
     ];
 
-    public function category(){
-        return $this->hasOne('App\Models\ExpensesCategory','id','category_id');
+    // Get Expense based task
+    public function task()
+    {
+        return $this->hasOne('App\Models\ProjectTask', 'id', 'task_id');
     }
-    public function projects(){
-        return $this->hasOne('App\Models\Projects','id','project');
+
+    // Get Expense based project
+    public function project()
+    {
+        return $this->hasOne('App\Models\Project', 'id', 'project_id');
     }
-    public function user(){
-        return $this->hasOne('App\Models\User','id','user_id');
-    }
+
 }

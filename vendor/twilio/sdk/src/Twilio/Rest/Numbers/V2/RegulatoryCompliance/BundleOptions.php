@@ -26,7 +26,6 @@ abstract class BundleOptions
      * @param string $isoCountry The [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the Bundle's phone number country ownership request.
      * @param string $endUserType
      * @param string $numberType The type of phone number of the Bundle's ownership request. Can be `local`, `mobile`, `national`, or `toll free`.
-     * @param bool $isTest Indicates that Bundle is a Test Bundle and will be Auto-Rejected
      * @return CreateBundleOptions Options builder
      */
     public static function create(
@@ -35,8 +34,7 @@ abstract class BundleOptions
         string $regulationSid = Values::NONE,
         string $isoCountry = Values::NONE,
         string $endUserType = Values::NONE,
-        string $numberType = Values::NONE,
-        bool $isTest = Values::BOOL_NONE
+        string $numberType = Values::NONE
 
     ): CreateBundleOptions
     {
@@ -45,8 +43,7 @@ abstract class BundleOptions
             $regulationSid,
             $isoCountry,
             $endUserType,
-            $numberType,
-            $isTest
+            $numberType
         );
     }
 
@@ -131,7 +128,6 @@ class CreateBundleOptions extends Options
      * @param string $isoCountry The [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) of the Bundle's phone number country ownership request.
      * @param string $endUserType
      * @param string $numberType The type of phone number of the Bundle's ownership request. Can be `local`, `mobile`, `national`, or `toll free`.
-     * @param bool $isTest Indicates that Bundle is a Test Bundle and will be Auto-Rejected
      */
     public function __construct(
         
@@ -139,8 +135,7 @@ class CreateBundleOptions extends Options
         string $regulationSid = Values::NONE,
         string $isoCountry = Values::NONE,
         string $endUserType = Values::NONE,
-        string $numberType = Values::NONE,
-        bool $isTest = Values::BOOL_NONE
+        string $numberType = Values::NONE
 
     ) {
         $this->options['statusCallback'] = $statusCallback;
@@ -148,7 +143,6 @@ class CreateBundleOptions extends Options
         $this->options['isoCountry'] = $isoCountry;
         $this->options['endUserType'] = $endUserType;
         $this->options['numberType'] = $numberType;
-        $this->options['isTest'] = $isTest;
     }
 
     /**
@@ -206,18 +200,6 @@ class CreateBundleOptions extends Options
     public function setNumberType(string $numberType): self
     {
         $this->options['numberType'] = $numberType;
-        return $this;
-    }
-
-    /**
-     * Indicates that Bundle is a Test Bundle and will be Auto-Rejected
-     *
-     * @param bool $isTest Indicates that Bundle is a Test Bundle and will be Auto-Rejected
-     * @return $this Fluent Builder
-     */
-    public function setIsTest(bool $isTest): self
-    {
-        $this->options['isTest'] = $isTest;
         return $this;
     }
 

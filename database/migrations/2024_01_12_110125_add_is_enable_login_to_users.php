@@ -14,12 +14,10 @@ return new class extends Migration
         if (!Schema::hasColumn('users', 'is_enable_login')) {
 
             Schema::table('users', function (Blueprint $table) {
-                $table->integer('is_enable_login')->default(1)->after('last_login_at');                                
+                $table->integer('is_enable_login')->default(1)->after('is_disable');                                
             });
         }
     }
-
-    
 
     /**
      * Reverse the migrations.

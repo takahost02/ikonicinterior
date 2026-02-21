@@ -16,10 +16,11 @@ class CreateAssetsTable extends Migration
         Schema::create(
             'assets', function (Blueprint $table){
             $table->bigIncrements('id');
+            $table->text('employee_id')->nullable();
             $table->string('name');
             $table->date('purchase_date');
             $table->date('supported_date');
-            $table->decimal('amount', 15, 2)->default(0.00);
+            $table->decimal('amount',15,2)->default(0.00);
             $table->text('description')->nullable();
             $table->integer('created_by')->default(0);
             $table->timestamps();

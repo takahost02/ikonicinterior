@@ -17,7 +17,6 @@ class InvoicePayment extends Model
         'txn_id',
         'payment_type',
         'receipt',
-        'add_receipt',
         'reference',
         'description',
     ];

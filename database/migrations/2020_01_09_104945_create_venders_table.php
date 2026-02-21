@@ -16,10 +16,10 @@ class CreateVendersTable extends Migration
         Schema::create('venders', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->integer('vender_id');
-            $table->string('name');
-            $table->string('email');
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
             $table->string('tax_number')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->string('contact')->nullable();
             $table->string('avatar', 100)->default('');
             $table->integer('created_by')->default(0);
@@ -40,9 +40,8 @@ class CreateVendersTable extends Migration
             $table->string('shipping_zip')->nullable();
             $table->text('shipping_address')->nullable();
             $table->string('lang')->default('en');
-            $table->decimal('balance', 15, 2)->default('0.00');
+            $table->float('balance')->default('0.00');
             $table->rememberToken();
-            $table->datetime('last_login_at')->nullable();
             $table->timestamps();
         });
     }

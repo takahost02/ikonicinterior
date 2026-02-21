@@ -1,65 +1,128 @@
-@php
-    $chatGPT = \App\Models\Utility::settings('enable_chatgpt');
-    $enable_chatgpt = !empty($chatGPT);
-@endphp
-{{ Form::model($transfer, ['route' => ['transfer.update', $transfer->id], 'method' => 'PUT','class'=>'needs-validation','novalidate']) }}
+{{Form::model($transfer,array('route' => array('transfer.update', $transfer->id), 'method' => 'PUT', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
+    {{-- start for ai module--}}
+    @php
+        $plan= \App\Models\Utility::getChatGPTSettings();
+    @endphp
+    @if($plan->chatgpt == 1)
+    <div class="text-end">
+        <a href="#" data-size="md" class="btn  btn-primary btn-icon btn-sm" data-ajax-popup-over="true" data-url="{{ route('generate',['transfer']) }}"
+           data-bs-placement="top" data-title="{{ __('Generate content with AI') }}">
+            <i class="fas fa-robot"></i> <span>{{__('Generate with AI')}}</span>
+        </a>
+    </div>
+    @endif
+    {{-- end for ai module--}}
     <div class="row">
-        @if ($enable_chatgpt)
-            <div>
-                <a href="#" data-size="md" data-ajax-popup-over="true"
-                    data-url="{{ route('generate', ['transfer']) }}" data-bs-toggle="tooltip" data-bs-placement="top"
-                    title="{{ __('Generate') }}" data-title="{{ __('Generate content with AI') }}"
-                    class="btn btn-primary btn-sm float-end">
-                    <i class="fas fa-robot"></i>
-                    {{ __('Generate with AI') }}
-                </a>
-            </div>
-        @endif
-        <div class="form-group col-md-6">
-            {{ Form::label('from_account', __('From Account'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::select('from_account', $bankAccount, null, ['class' => 'form-control', 'id' => 'choices-multiple', 'required' => 'required']) }}
+        <div class="form-group col-lg-6 col-md-6">
+            {{Form::label('branch_id',__('Branch'),['class'=>'form-label'])}}<x-required></x-required>
+            {{Form::select('branch_id',$branches, $transfer->branch_id,array('class'=>'form-control select', 'id' => 'branch_id', 'required'=>'required'))}}
             <div class="text-xs mt-1">
-                {{ __('Create from account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create from account') }}</b></a>
+                {{ __('Create branch here.') }} <a href="{{ route('branch.index') }}"><b>{{ __('Create branch') }}</b></a>
             </div>
         </div>
-        <div class="form-group col-md-6">
-            {{ Form::label('to_account', __('To Account'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::select('to_account', $bankAccount, null, ['class' => 'form-control', 'id' => 'choices-multiple1', 'required' => 'required']) }}
+        <div class="form-group col-lg-6 col-md-6">
+            {{Form::label('department_id',__('Department'),['class'=>'form-label'])}}<x-required></x-required>
+            {{Form::select('department_id',$departments,null,array('class'=>'form-control select', 'id' => 'department_id', 'required'=>'required'))}}
             <div class="text-xs mt-1">
-                {{ __('Create to account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create to account') }}</b></a>
+                {{ __('Create department here.') }} <a href="{{ route('department.index') }}"><b>{{ __('Create department') }}</b></a>
             </div>
         </div>
-        <div class="form-group col-md-6">
-            {{ Form::label('amount', __('Amount'), ['class' => 'form-label']) }}<x-required></x-required>
-            <div class="form-icon-user">
-                {{ Form::number('amount', null, ['class' => 'form-control', 'required' => 'required', 'step' => '0.01', 'placeholder'=>__('Enter Amount')]) }}
+        <div class="form-group col-lg-6 col-md-6 ">
+            {{ Form::label('employee_id', __('Employee'),['class'=>'form-label'])}}<x-required></x-required>
+            {{ Form::select('employee_id', $employees,null, array('class' => 'form-control select','id' => 'employee_id', 'required'=>'required')) }}
+            <div class="text-xs mt-1">
+                {{ __('Create employee here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create employee') }}</b></a>
             </div>
         </div>
-        <div class="form-group col-md-6">
-            {{ Form::label('date', __('Date'), ['class' => 'form-label']) }}<x-required></x-required>
-            <div class="form-icon-user">
-                {{ Form::date('date', null, ['class' => 'form-control', 'required' => 'required']) }}
-
-            </div>
+        <div class="form-group col-lg-6 col-md-6">
+            {{Form::label('transfer_date',__('Transfer Date'),['class'=>'form-label'])}}<x-required></x-required>
+            {{Form::date('transfer_date',null,array('class'=>'form-control','required'=>'required'))}}
         </div>
 
-        <div class="form-group  col-md-6">
-            {{ Form::label('reference', __('Reference'), ['class' => 'form-label']) }}
-            <div class="form-icon-user">
-                {{ Form::text('reference', null, ['class' => 'form-control', 'placeholder'=>__('Enter Reference')]) }}
-            </div>
-        </div>
-
-        <div class="form-group  col-md-12">
-            {{ Form::label('description', __('Description'), ['class' => 'form-label']) }}
-            {{ Form::textarea('description', null, ['class' => 'form-control', 'rows' => 3, 'placeholder'=>__('Enter Description')]) }}
+        <div class="form-group col-lg-12">
+            {{Form::label('description',__('Description'),['class'=>'form-label'])}}
+            {{Form::textarea('description',null,array('class'=>'form-control','placeholder'=>__('Enter Description')))}}
         </div>
 
     </div>
 </div>
+
 <div class="modal-footer">
-    <input type="button" value="{{ __('Cancel') }}" class="btn  btn-light" data-bs-dismiss="modal">
-    <input type="submit" value="{{ __('Update') }}" class="btn  btn-primary">
+    <input type="button" value="{{__('Cancel')}}" class="btn  btn-secondary" data-bs-dismiss="modal">
+    <input type="submit" value="{{__('Update')}}" class="btn  btn-primary">
 </div>
-{{ Form::close() }}
+
+
+{{Form::close()}}
+
+{{-- @push('script-page') --}}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var b_id = $('#branch_id').val();
+            var d_id = $('#department_id').val();
+            getDepartment(b_id);
+            getEmployee(d_id);
+        });
+
+        $(document).on('change', '#branch_id', function() {
+            var branch_id = $(this).val();
+            getDepartment(branch_id);
+        });
+
+        $(document).on('change', 'select[name=department_id]', function() {
+            var department_id = $(this).val();
+            getEmployee(department_id);
+        });
+
+        function getDepartment(branch_id) {
+            $.ajax({
+                url: '{{ route('employee.getdepartment') }}',
+                method: 'POST',
+                data: {
+                    "branch_id": branch_id,
+                    "_token": "{{ csrf_token() }}",
+                },
+                success: function(data) {
+                    $('#department_id').empty();
+                    $('#department_id').append(
+                        '<option value="" disabled>{{ __('Select Department') }}</option>');
+
+                    $.each(data, function(key, value) {
+                        var selected = '';
+                        if (key == '{{ $transfer->department_id }}') {
+                            selected = 'selected';
+                        }
+
+                        $('#department_id').append('<option value="' + key + '"  ' + selected + '>' + value + '</option>');
+                    });
+                }
+            });
+        }
+
+        function getEmployee(did) {
+            $.ajax({
+                url: '{{ route('department.getemployee') }}',
+                type: 'POST',
+                data: {
+                    "department_id": did,
+                    "_token": "{{ csrf_token() }}",
+                },
+                success: function(data) {
+                    $('#employee_id').empty();
+                    $('#employee_id').append('<option value="">Select Employee</option>');
+                    $.each(data, function(key, value) {
+                        var select = '';
+                        if (key == '{{ $transfer->employee_id }}') {
+                            select = 'selected';
+                        }
+
+                        $('#employee_id').append('<option value="' + key + '"  ' + select + '>' +
+                            value + '</option>');
+                    });
+                }
+            });
+        }
+    </script>
+{{-- @endpush --}}
+

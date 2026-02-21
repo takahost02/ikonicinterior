@@ -11,6 +11,7 @@ class ChartOfAccount extends Model
         'code',
         'type',
         'sub_type',
+        'parent',
         'is_enabled',
         'description',
         'created_by',
@@ -28,7 +29,9 @@ class ChartOfAccount extends Model
 
     public function balance()
     {
-        $journalItem         = JournalItem::select(\DB::raw('sum(credit) as totalCredit'), \DB::raw('sum(debit) as totalDebit'), \DB::raw('sum(credit) - sum(debit) as netAmount'))->where('account', $this->id);
+        $journalItem         = JournalItem::select(\DB::raw('sum(credit) as totalCredit'),
+            \DB::raw('sum(debit) as totalDebit'),
+            \DB::raw('sum(credit) - sum(debit) as netAmount'))->where('account', $this->id);
         $journalItem         = $journalItem->first();
         $data['totalCredit'] = $journalItem->totalCredit;
         $data['totalDebit']  = $journalItem->totalDebit;
@@ -45,10 +48,5 @@ class ChartOfAccount extends Model
     public function parentAccount()
     {
         return $this->hasOne('App\Models\ChartOfAccountParent', 'id', 'parent');
-    }
-
-    public function bankAccount()
-    {
-        return $this->hasOne('App\Models\BankAccount', 'chart_account_id', 'id');
     }
 }

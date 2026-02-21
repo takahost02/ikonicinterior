@@ -13,7 +13,6 @@ class Khalti {
 	 * @return array payment details with status
 	 */
 	public function verifyPayment($secret, $token, $amount) {
-
 		$config = http_build_query(array(
 		    'token' => $token,
 		    'amount'  => $amount,

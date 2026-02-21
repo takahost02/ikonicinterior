@@ -1,4 +1,4 @@
-{{ Form::model($tax, array('route' => array('taxes.update', $tax->id), 'method' => 'PUT','class'=>'needs-validation','novalidate')) }}
+{{ Form::model($tax, array('route' => array('taxes.update', $tax->id), 'method' => 'PUT', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
     <div class="row">
         <div class="form-group col-md-6">
@@ -12,7 +12,7 @@
         </div>
         <div class="form-group col-md-6">
             {{ Form::label('rate', __('Tax Rate %'),['class'=>'form-label']) }}<x-required></x-required>
-            {{ Form::number('rate', null, array('class' => 'form-control','required'=>'required','step'=>'0.01', 'placeholder'=>__('Enter Tax Rate %'))) }}
+            {{ Form::number('rate', null, array('class' => 'form-control','required'=>'required','step'=>'0.01', 'placeholder'=>__('Enter Rate'))) }}
             @error('rate')
             <small class="invalid-rate" role="alert">
                 <strong class="text-danger">{{ $message }}</strong>
@@ -23,7 +23,7 @@
     </div>
 </div>
 <div class="modal-footer">
-    <input type="button" value="{{__('Cancel')}}" class="btn  btn-light" data-bs-dismiss="modal">
+    <input type="button" value="{{__('Cancel')}}" class="btn  btn-secondary" data-bs-dismiss="modal">
     <input type="submit" value="{{__('Update')}}" class="btn  btn-primary">
 </div>
 {{ Form::close() }}

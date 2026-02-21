@@ -19,15 +19,10 @@ class Proposal extends Model
 
     public static $statues = [
         'Draft',
-        //0
         'Open',
-        //1
         'Accepted',
-        //2
         'Declined',
-        //3
         'Close',
-        //4
     ];
 
 
@@ -49,64 +44,57 @@ class Proposal extends Model
     public function getSubTotal()
     {
         $subTotal = 0;
-        foreach ($this->items as $product) {
+        foreach($this->items as $product)
+        {
             $subTotal += ($product->price * $product->quantity);
         }
 
         return $subTotal;
     }
 
-    
-    // public function getTotalTax()
-    // {
-    //     $totalTax = 0;
-    //     foreach ($this->items as $product) {
-    //         $taxes = Utility::totalTaxRate($product->tax);
 
-    //         $totalTax += ($taxes / 100) * ($product->price * $product->quantity);
-    //     }
-
-    //     return $totalTax;
-    // }
     public function getTotalTax()
     {
+        $taxData = Utility::getTaxData();
         $totalTax = 0;
         foreach($this->items as $product)
         {
-            $taxes = Utility::totalTaxRate($product->tax);
+            // $taxes = Utility::totalTaxRate($product->tax);
 
+            $taxArr = explode(',', $product->tax);
+            $taxes = 0;
+            foreach ($taxArr as $tax) {
+                // $tax = TaxRate::find($tax);
+                $taxes += !empty($taxData[$tax]['rate']) ? $taxData[$tax]['rate'] : 0;
+            }
 
-            $totalTax += ($taxes / 100) * ($product->price * $product->quantity - $product->discount) ;
+            $totalTax += ($taxes / 100) * ($product->price * $product->quantity);
         }
 
         return $totalTax;
     }
+
     public function getTotalDiscount()
     {
         $totalDiscount = 0;
-        foreach ($this->items as $product) {
+        foreach($this->items as $product)
+        {
             $totalDiscount += $product->discount;
         }
 
         return $totalDiscount;
     }
 
-    // public function getTotal()
-    // {
-    //     return ($this->getSubTotal() + $this->getTotalTax()) - $this->getTotalDiscount();
-    // }
-
     public function getTotal()
     {
-        // dd($this->getSubTotal() -$this->getTotalDiscount()) + $this->getTotalTax();
         return ($this->getSubTotal() -$this->getTotalDiscount()) + $this->getTotalTax();
-        //        return ($this->getSubTotal() + $this->getTotalTax()) - $this->getTotalDiscount();
     }
 
     public function getDue()
     {
         $due = 0;
-        foreach ($this->payments as $payment) {
+        foreach($this->payments as $payment)
+        {
             $due += $payment->amount;
         }
 
@@ -130,31 +118,5 @@ class Proposal extends Model
     {
         return $this->hasOne('App\Models\Tax', 'id', 'tax');
     }
-    public static function customers($customer)
-    {
 
-        $categoryArr  = explode(',', $customer);
-        $unitRate = 0;
-        foreach ($categoryArr as $customer) {
-            if ($customer == 0) {
-                $unitRate = '';
-            } else {
-                $customer        = Customer::find($customer);
-                $unitRate        = $customer->name ?? '-';
-            }
-        }
-
-        return $unitRate;
-    }
-    public static function ProposalCategory($category)
-    {
-        $categoryArr  = explode(',', $category);
-        $categoryRate = 0;
-        foreach ($categoryArr as $category) {
-            $category    = ProductServiceCategory::find($category);
-            $categoryRate        = $category->name ?? '-';
-        }
-
-        return $categoryRate;
-    }
 }

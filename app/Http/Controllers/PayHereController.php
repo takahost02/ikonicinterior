@@ -2,224 +2,392 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
-use App\Models\Order;
-use App\Models\Plan;
-use App\Models\UserCoupon;
-use App\Models\Utility;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
-use App\Models\Retainer;
-use App\Models\RetainerPayment;
+use App\Models\Order;
+use App\Models\Plan;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Models\UserCoupon;
+use App\Models\Utility;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Lahirulhr\PayHere\PayHere;
 
 class PayHereController extends Controller
 {
-    public $paymentSetting;
-    public function __construct()
+    public function planPayWithPayHere(Request $request)
     {
-        $paymentSetting = Utility::getCompanyPaymentSetting();
-        $config = [
-            'payhere.api_endpoint' => isset($paymentSetting['payhere_mode']) && $paymentSetting['payhere_mode'] === 'sandbox'
-                ? 'https://sandbox.payhere.lk/'
-                : 'https://www.payhere.lk/',
-        ];
+        $payment_setting = Utility::getAdminPaymentSetting();
+        $payhere_merchant_id = !empty($payment_setting['payhere_merchant_id']) ? $payment_setting['payhere_merchant_id'] : '';
+        $payhere_merchant_secret = !empty($payment_setting['payhere_merchant_secret']) ? $payment_setting['payhere_merchant_secret'] : '';
+        $payhere_app_id = !empty($payment_setting['payhere_app_id']) ? $payment_setting['payhere_app_id'] : '';
+        $payhere_app_secret = !empty($payment_setting['payhere_app_secret']) ? $payment_setting['payhere_app_secret'] : '';
+        $payhere_mode = !empty($payment_setting['payhere_mode']) ? $payment_setting['payhere_mode'] : 'sandbox';
+        $currency_code = isset($payment_setting['currency_code']) ? $payment_setting['currency_code'] : 'LKR';
+        // $currency_code = 'LKR';
+        $user = Auth::user();
+        $planID = \Illuminate\Support\Facades\Crypt::decrypt($request->plan_id);
+        $plan = Plan::find($planID);
+        $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+        if ($plan) {
 
-        $config['payhere.merchant_id']      = $paymentSetting['payhere_merchant_id'] ?? '';
-        $config['payhere.merchant_secret']  = $paymentSetting['payhere_merchant_secret'] ?? '';
-        $config['payhere.app_secret']       = $paymentSetting['payhere_app_secret'] ?? '';
-        $config['payhere.app_id']           = $paymentSetting['payhere_app_id'] ?? '';
+            $get_amount = $plan->price;
+            if (!empty($request->coupon)) {
+                $coupons = Coupon::where('code', strtoupper($request->coupon))->where('is_active', '1')->first();
+                if (!empty($coupons)) {
+                    $usedCoupun = $coupons->used_coupon();
+                    $discount_value = ($plan->price / 100) * $coupons->discount;
 
-        config($config);
+                    $get_amount = $plan->price - $discount_value;
 
-        $this->paymentSetting = $paymentSetting;
+                    if ($coupons->limit == $usedCoupun) {
+                        return redirect()->back()->with('error', __('This coupon code has expired.'));
+                    }
+                    if ($get_amount <= 0) {
+                        $authuser = Auth::user();
+                        $authuser->plan = $plan->id;
+                        $authuser->save();
+                        $assignPlan = $authuser->assignPlan($plan->id);
+                        if ($assignPlan['is_success'] == true && !empty($plan)) {
+
+                            $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+                            $userCoupon = new UserCoupon();
+
+                            $userCoupon->user = $authuser->id;
+                            $userCoupon->coupon = $coupons->id;
+                            $userCoupon->order = $orderID;
+                            $userCoupon->save();
+                            Order::create(
+                                [
+                                    'order_id' => $orderID,
+                                    'name' => null,
+                                    'email' => null,
+                                    'card_number' => null,
+                                    'card_exp_month' => null,
+                                    'card_exp_year' => null,
+                                    'plan_name' => $plan->name,
+                                    'plan_id' => $plan->id,
+                                    'price' => $get_amount == null ? 0 : $get_amount,
+                                    'price_currency' => $currency_code,
+                                    'txn_id' => '',
+                                    'payment_type' => 'Nepalste',
+                                    'payment_status' => 'success',
+                                    'receipt' => null,
+                                    'user_id' => $authuser->id,
+                                ]
+                            );
+                            $assignPlan = $authuser->assignPlan($plan->id);
+                            return redirect()->route('plans.index')->with('success', __('Plan Successfully Activated'));
+                        }
+                    }
+                } else {
+                    return redirect()->back()->with('error', __('This coupon code is invalid or has expired.'));
+                }
+            }
+
+
+            try{
+                $config = [
+                    'payhere.api_endpoint' => $payhere_mode === 'sandbox'
+                        ? 'https://sandbox.payhere.lk/'
+                        : 'https://www.payhere.lk/',
+                ];
+
+                $config['payhere.merchant_id'] = $payhere_merchant_id ?? '';
+                $config['payhere.merchant_secret'] = $payhere_merchant_secret ?? '';
+                $config['payhere.app_secret'] = $payhere_app_secret ?? '';
+                $config['payhere.app_id'] = $payhere_app_id ?? '';
+                config($config);
+
+                $hash = strtoupper(
+                    md5(
+                        $payhere_merchant_id .
+                            $orderID .
+                            number_format($get_amount, 2, '.', '') .
+                            'LKR' .
+                            strtoupper(md5($payhere_merchant_secret))
+                    )
+                );
+
+                $data = [
+                    'first_name' => $user->name,
+                    'last_name' => '',
+                    'email' => $user->email,
+                    'phone' => $user->mobile_no ?? '',
+                    'address' => 'Main Rd',
+                    'city' => 'Anuradhapura',
+                    'country' => 'Sri lanka',
+                    'order_id' => $orderID,
+                    'items' => $plan->name ?? 'Add-on',
+                    'currency' => $currency_code,
+                    'amount' => $get_amount,
+                    'hash' => $hash,
+                ];
+
+                return PayHere::checkOut()
+                    ->data($data)
+                    ->successUrl(route('plan.get.payhere.status', [
+                        $plan->id,
+                        'amount' => $get_amount,
+                        'coupon_code' => !empty($request->coupon_code) ? $request->coupon_code : '',
+                        'coupon_id' => !empty($coupons->id) ? $coupons->id : '',
+                    ]))
+                    ->failUrl(route('plan.get.payhere.status', [
+                        $plan->id,
+                        'amount' => $get_amount,
+                        'coupon_code' => !empty($request->coupon_code) ? $request->coupon_code : '',
+                        'coupon_id' => !empty($coupons->id) ? $coupons->id : '',
+                    ]))
+                    ->renderView();
+            } catch (\Exception $e) {
+                \Log::debug($e->getMessage());
+                return redirect()->route('plans.index')->with('error', $e->getMessage());
+            }
+        }
     }
 
-    public function invoicePayWithPayHere(Request $request, $invoice_id)
+    public function planGetPayHereStatus(Request $request)
     {
-        try {
-            $invoice            = Invoice::find($invoice_id);
-            $customer           = Customer::find($invoice->customer_id);
-            $payment_setting    = Utility::getCompanyPaymentSetting($invoice->created_by);
-            $setting            = Utility::settingsById($invoice->created_by);
-            $currency           = isset($setting['currency']) ? $setting['currency'] : '';
-            $api_key            = isset($payment_setting['payhere_merchant_id']) ? $payment_setting['payhere_merchant_id'] : '';
-            $get_amount         = $request->amount;
-            $order_id           = strtoupper(str_replace('.', '', uniqid('', true)));
+        $payment_setting = Utility::getAdminPaymentSetting();
+        $currency_code = isset($payment_setting['currency_code']) ? $payment_setting['currency_code'] : 'NPR';
 
-            $request->validate(['amount' => 'required|numeric|min:0']);
+        $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+
+        $getAmount = $request->get_amount;
+        $authuser = Auth::user();
+        $plan = Plan::find($request->plan);
+
+        Utility::referralTransaction($plan);
+
+            $order = new Order();
+            $order->order_id = $orderID;
+            $order->name = $authuser->name;
+            $order->card_number = '';
+            $order->card_exp_month = '';
+            $order->card_exp_year = '';
+            $order->plan_name = $plan->name;
+            $order->plan_id = $plan->id;
+            $order->price = $getAmount;
+            $order->price_currency = $currency_code;
+            $order->txn_id = $orderID;
+            $order->payment_type = __('PayHere');
+            $order->payment_status = 'success';
+            $order->txn_id = '';
+            $order->receipt = '';
+            $order->user_id = $authuser->id;
+            $order->save();
+            $assignPlan = $authuser->assignPlan($plan->id);
+
+            $coupons = Coupon::find($request->coupon_id);
+            if (!empty($request->coupon_id)) {
+                if (!empty($coupons)) {
+                    $userCoupon = new UserCoupon();
+                    $userCoupon->user = $authuser->id;
+                    $userCoupon->coupon = $coupons->id;
+                    $userCoupon->order = $orderID;
+                    $userCoupon->save();
+                    $usedCoupun = $coupons->used_coupon();
+                    if ($coupons->limit <= $usedCoupun) {
+                        $coupons->is_active = 0;
+                        $coupons->save();
+                    }
+                }
+            }
+
+            if ($assignPlan['is_success'])
+            {
+                return redirect()->route('plans.index')->with('success', __('Plan activated Successfully.'));
+            } else
+            {
+                return redirect()->route('plans.index')->with('error', __($assignPlan['error']));
+            }
+    }
+
+    public function invoicePayWithPayHere(Request $request)
+    {
+        $invoice_id = decrypt($request->invoice_id);
+        $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','payhere')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with PayHere.'));
+        }
+        
+        if (Auth::check()) {
+            $user = Auth::user();
+        } else {
+            $user = User::where('id', $invoice->created_by)->first();
+        }
+        if ($user->type != 'company') {
+            $user = User::where('id', $user->created_by)->first();
+        }
+
+        $payment_setting = Utility::getCompanyPaymentSetting($user->id);
+        $payhere_merchant_id = !empty($payment_setting['payhere_merchant_id']) ? $payment_setting['payhere_merchant_id'] : '';
+        $payhere_merchant_secret = !empty($payment_setting['payhere_merchant_secret']) ? $payment_setting['payhere_merchant_secret'] : '';
+        $payhere_app_id = !empty($payment_setting['payhere_app_id']) ? $payment_setting['payhere_app_id'] : '';
+        $payhere_app_secret = !empty($payment_setting['payhere_app_secret']) ? $payment_setting['payhere_app_secret'] : '';
+        $payhere_mode = !empty($payment_setting['payhere_mode']) ? $payment_setting['payhere_mode'] : 'sandbox';
+        $currency_code = isset($payment_setting['currency_code']) ? $payment_setting['currency_code'] : 'LKR';
+        $get_amount = round($request->amount);
+        $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
+
+        try{
+            $config = [
+                'payhere.api_endpoint' => $payhere_mode === 'sandbox'
+                    ? 'https://sandbox.payhere.lk/'
+                    : 'https://www.payhere.lk/',
+            ];
+
+            $config['payhere.merchant_id'] = $payhere_merchant_id ?? '';
+            $config['payhere.merchant_secret'] = $payhere_merchant_secret ?? '';
+            $config['payhere.app_secret'] = $payhere_app_secret ?? '';
+            $config['payhere.app_id'] = $payhere_app_id ?? '';
+            config($config);
 
             $hash = strtoupper(
                 md5(
-                    $api_key .
-                        $order_id .
+                    $payhere_merchant_id .
+                        $orderID .
                         number_format($get_amount, 2, '.', '') .
-                        $currency .
-                        strtoupper(md5(config('payhere.merchant_secret')))
+                        $currency_code .
+                        strtoupper(md5($payhere_merchant_secret))
                 )
             );
-
             $data = [
-                'first_name'    => $customer->name,
-                'last_name'     => '',
-                'email'         => $customer->email,
-                'address'       => '',
-                'city'          => '',
-                'country'       => '',
-                'order_id'      => $order_id,
-                'items'         => 'Invoice Payment',
-                'currency'      => $currency,
-                'amount'        => $get_amount,
-                'hash'          => $hash,
+                'first_name' => $user->name,
+                'last_name' => '',
+                'email' => $user->email,
+                'phone' => $user->mobile_no ?? '',
+                'address' => 'Main Rd',
+                'city' => 'Anuradhapura',
+                'country' => 'Sri lanka',
+                'order_id' => $orderID,
+                'items' => 'Add-on',
+                'currency' => $currency_code,
+                'amount' => $get_amount,
+                'hash' => $hash,
             ];
 
             return PayHere::checkOut()
                 ->data($data)
-                ->successUrl(route('invoice.payhere.status', ['success' => 1, 'id' => $invoice_id, 'amount' => $get_amount]))
-                ->failUrl(route('invoice.payhere.status', ['success' => 0, 'id' => $invoice_id]))
+                ->successUrl(route('invoice.payhere.status', [
+                    $request->invoice_id,
+                    'amount' => $get_amount,
+                ]))
+                ->failUrl(route('invoice.payhere.status', [
+                    $request->invoice_id,
+                    'amount' => $get_amount,
+                ]))
                 ->renderView();
         } catch (\Exception $e) {
+            \Log::debug($e->getMessage());
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
-
-    public function invoiceGetPayHereStatus(Request $request)
+    public function getInvociePaymentStatus(Request $request)
     {
-        if ($request->success == 1) {
-            $info = PayHere::retrieve()
-                ->orderId($request->order_id)
-                ->submit();
+        $orderID   = strtoupper(str_replace('.', '', uniqid('', true)));
+        $invoice = Invoice::find($request->invoice);
 
-            if ($info['data'][0]['order_id'] == $request->order_id) {
-                if ($info['data'][0]['status'] == "RECEIVED") {
-                    $invoice = Invoice::find($request->invoice_id);
+        if (Auth::check()) {
+            $user = Auth::user();
+        } else {
+            $user = User::where('id', $invoice->created_by)->first();
+        }
+        if ($user->type != 'company') {
+            $user = User::where('id', $user->created_by)->first();
+        }
+        $get_amount = $request->amount;
+        $settings= Utility::settingsById($invoice->created_by);
 
-                    $payment = new InvoicePayment();
-                    $payment->invoice_id    = $invoice->id;
-                    $payment->date          = date('Y-m-d');
-                    $payment->amount        = $request->amount;
-                    $payment->account_id    = 0;
-                    $payment->payment_method = 0;
-                    $payment->order_id      = $request->order_id;
-                    $payment->currency      = $invoice->currency;
-                    $payment->txn_id        = '';
-                    $payment->payment_type  = __('PayHere');
-                    $payment->receipt       = '';
-                    $payment->reference     = '';
-                    $payment->description   = 'Invoice Payment ' . Utility::invoiceNumberFormat($invoice->created_by, $invoice->invoice_id);
-                    $payment->save();
+        if ($invoice) {
+            try {
+                $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','payhere')->first();
+                $invoice_payment                 = new InvoicePayment();
+                $invoice_payment->invoice_id     = $invoice->id;
+                $invoice_payment->date           = Date('Y-m-d');
+                $invoice_payment->amount         = $get_amount;
+                $invoice_payment->account_id     = $account->id;
+                $invoice_payment->payment_method = 0;
+                $invoice_payment->order_id       = $orderID;
+                $invoice_payment->payment_type   = 'PayHere';
+                $invoice_payment->receipt        = '';
+                $invoice_payment->reference      = '';
+                $invoice_payment->description    = 'Invoice ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id);
+                $invoice_payment->save();
 
-                    if ($invoice->getDue() <= 0) {
-                        $invoice->status = 4;
-                    } elseif (($invoice->getDue() - $payment->amount) == 0) {
-                        $invoice->status = 4;
-                    } else {
-                        $invoice->status = 3;
-                    }
+                if($invoice->getDue() <= 0)
+                {
+                    $invoice->status = 4;
                     $invoice->save();
-                    return redirect()->route('invoice.show', \Crypt::encrypt($invoice->id))->with('success', __('Payment successfully added.'));
                 }
-            }
-        } else {
-            return redirect()->route('invoices.index')->with('error', __('Invoice payment failed.'));
-        }
-    }
+                elseif(($invoice->getDue() - $invoice_payment->amount) == 0)
+                {
+                    $invoice->status = 4;
+                    $invoice->save();
+                }
+                else
+                {
+                    $invoice->status = 3;
+                    $invoice->save();
+                }
 
-    public function retainerPayWithPayHere(Request $request, $retainer_id)
-    {
-        try {
-            $retainer       = Retainer::find($retainer_id);
-            $customer       = Customer::find($retainer->customer_id);
-            $payment_setting = Utility::getCompanyPaymentSetting($retainer->created_by);
-            $currency       = isset($payment_setting['currency']) ? $payment_setting['currency'] : '';
-            $api_key        = isset($payment_setting['payhere_merchant_id']) ? $payment_setting['payhere_merchant_id'] : '';
-            $get_amount     = $request->amount;
-            $order_id       = strtoupper(str_replace('.', '', uniqid('', true)));
-            $request->validate(['amount' => 'required|numeric|min:0']);
+                Utility::addOnlinePaymentData($invoice_payment , $invoice , 'payhere');                        
 
-            $hash = strtoupper(
-                md5(
-                    $api_key .
-                        $order_id .
-                        number_format($get_amount, 2, '.', '') .
-                        $currency .
-                        strtoupper(md5(config('payhere.merchant_secret')))
-                )
-            );
+                //for customer balance update
+                Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                //for bank balance update
+                Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
-            $data = [
-                'first_name'    => $customer->name,
-                'last_name'     => '',
-                'email'         => $customer->email,
-                'address'       => '',
-                'city'          => '',
-                'country'       => '',
-                'order_id'      => $order_id,
-                'items'         => 'Retainer Payment',
-                'currency'      => $currency,
-                'amount'        => $get_amount,
-                'hash'          => $hash,
-            ];
-
-            return PayHere::checkOut()
-                ->data($data)
-                ->successUrl(route('retainer.payhere.status', ['success' => 1, $retainer_id, $get_amount]))
-                ->failUrl(route('retainer.payhere.status', ['success' => 0,  $retainer_id]))
-                ->renderView();
-        } catch (\Exception $e) {
-            return redirect()->route('retainers.index')->with('error', $e->getMessage());
-        }
-    }
-
-    public function retainerGetPayHereStatus(Request $request, $retainer_id , $getAmount=0)
-    {
-        if ($request->success == 1) {
-            $info = PayHere::retrieve()
-                ->orderId($request->order_id)
-                ->submit();
-
-            if ($info['data'][0]['order_id'] == $request->order_id) {
-                if ($info['data'][0]['status'] == "RECEIVED") {
-                    $retainer = Retainer::find($request->retainer_id);
-
-                    $payment = new RetainerPayment();
-                    $payment->retainer_id       = $retainer->id;
-                    $payment->date              = date('Y-m-d');
-                    $payment->amount            = $request->amount;
-                    $payment->account_id        = 0;
-                    $payment->payment_method    = 0;
-                    $payment->order_id          = $request->order_id;
-                    $payment->currency          = $retainer->currency;
-                    $payment->txn_id            = '';
-                    $payment->payment_type      = __('PayHere');
-                    $payment->receipt           = '';
-                    $payment->reference         = '';
-                    $payment->description       = 'Retainer Payment ' . Utility::retainerNumberFormat($retainer->created_by, $retainer->retainer_id);
-                    $payment->save();
-
-                    if ($retainer->getDue() <= 0) {
-                        $retainer->status = 'close';
-                    } elseif (($retainer->getDue() - $payment->amount) == 0) {
-                        $retainer->status = 'close';
-                    } else {
-                        $retainer->status = 'active';
+                //For Notification
+                $setting  = Utility::settingsById($invoice->created_by);
+                $customer = Customer::find($invoice->customer_id);
+                $notificationArr = [
+                        'payment_price' => $request->amount,
+                        'invoice_payment_type' => 'PayHere',
+                        'customer_name' => $customer->name,
+                    ];
+                //Slack Notification
+                if(isset($settings['payment_notification']) && $settings['payment_notification'] ==1)
+                {
+                    Utility::send_slack_msg('new_invoice_payment', $notificationArr,$invoice->created_by);
+                }
+                //Telegram Notification
+                if(isset($settings['telegram_payment_notification']) && $settings['telegram_payment_notification'] == 1)
+                {
+                    Utility::send_telegram_msg('new_invoice_payment', $notificationArr,$invoice->created_by);
+                }
+                //Twilio Notification
+                if(isset($settings['twilio_payment_notification']) && $settings['twilio_payment_notification'] ==1)
+                {
+                    Utility::send_twilio_msg($customer->contact,'new_invoice_payment', $notificationArr,$invoice->created_by);
+                }
+                //webhook
+                $module ='New Invoice Payment';
+                $webhook=  Utility::webhookSetting($module,$invoice->created_by);
+                if($webhook)
+                {
+                    $parameter = json_encode($invoice_payment);
+                    $status = Utility::WebhookCall($webhook['url'],$parameter,$webhook['method']);
+                    if($status == true)
+                    {
+                        return redirect()->route('invoice.link.copy', \Crypt::encrypt($invoice->id))->with('error', __('Transaction has been failed.'));
                     }
-                    $retainer->save();
-
-                    return redirect()->route('retainers.index')->with('success', __('Retainer payment has been received successfully.'));
+                    else
+                    {
+                        return redirect()->back()->with('error', __('Payment successfully, Webhook call failed.'));
+                    }
                 }
+
+                return redirect()->route('invoice.link.copy', \Crypt::encrypt($invoice->id))->with('success', __('Invoice paid Successfully!'));
+            } catch (\Exception $e) {
+                return redirect()->route('invoice.link.copy',$request->invoice)->with('error', __($e->getMessage()));
             }
-        } else {
-            return redirect()->route('retainers.index')->with('error', __('Retainer payment failed.'));
         }
     }
-
-
 }

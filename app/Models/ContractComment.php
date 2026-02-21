@@ -7,15 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContractComment extends Model
 {
+    protected $table = 'contract_comment';
+
     protected $fillable = [
         'contract_id',
+        'user_id',
         'comment',
         'created_by',
-        'type',
     ];
-    
-    public function client()
+
+    public function user()
     {
-        return $this->hasOne('App\Models\Customer', 'id', 'created_by');
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
     }
 }

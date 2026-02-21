@@ -115,8 +115,7 @@ class TollfreeVerificationList extends ListResource
                 $options['externalReferenceId'],
         ]);
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->create('POST', $this->uri, [], $data, $headers);
+        $payload = $this->version->create('POST', $this->uri, [], $data);
 
         return new TollfreeVerificationInstance(
             $this->version,
@@ -197,10 +196,6 @@ class TollfreeVerificationList extends ListResource
                 $options['tollfreePhoneNumberSid'],
             'Status' =>
                 $options['status'],
-            'ExternalReferenceId' =>
-                $options['externalReferenceId'],
-            'IncludeSubAccounts' =>
-                Serialize::booleanToString($options['includeSubAccounts']),
             'PageToken' => $pageToken,
             'Page' => $pageNumber,
             'PageSize' => $pageSize,

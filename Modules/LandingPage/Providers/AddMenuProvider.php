@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 class AddMenuProvider extends ServiceProvider
 {
 
+
     public function boot()
     {
 

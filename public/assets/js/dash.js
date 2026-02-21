@@ -103,20 +103,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // menuclick();
       }
       var tempsdbr = document.querySelector(".dash-sidebar");
-      var tem = document.querySelector("body");
-        if (tem) {
-            if (
-                document
-                    .querySelector("body")
-                    .classList.contains("no-scroll")
-            ){
-                rmmenu();
-            } else {
-                document
-                    .querySelector("body")
-                    .classList.add("no-scroll");
-            }
-        }
       if (tempsdbr) {
         if (
           document
@@ -268,13 +254,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   // notification scrollbar start
   if (document.querySelector(".drp-notification .noti-body")) {
-    var px = new PerfectScrollbar(".drp-notification .noti-body", {
-      wheelSpeed: 0.5,
-      swipeEasing: 0,
-      suppressScrollX: !0,
-      wheelPropagation: 1,
-      minScrollbarLength: 40,
-    });
+    // var px = new PerfectScrollbar(".drp-notification .noti-body", {
+    //   wheelSpeed: 0.5,
+    //   swipeEasing: 0,
+    //   suppressScrollX: !0,
+    //   wheelPropagation: 1,
+    //   minScrollbarLength: 40,
+    // });
   }
   // notification scrollbar end
 });
@@ -360,23 +346,23 @@ function horizontalmobilemenuclick() {
 
 // Menu click start
 function addscroller() {
-    rmmini();
-    menuclick();
-    // Menu scrollbar start
-    if (document.querySelector(".navbar-content")) {
-      var px = new SimpleBar(document.querySelector(".navbar-content"), {
-        autoHide: true
-      });
-      // var px = new PerfectScrollbar(".navbar-content", {
-      //   wheelSpeed: 0.5,
-      //   swipeEasing: 0,
-      //   suppressScrollX: !0,
-      //   wheelPropagation: 1,
-      //   minScrollbarLength: 40,
-      // });
-    }
-    // Menu scrollbar end
+  rmmini();
+  menuclick();
+  // Menu scrollbar start
+  if (document.querySelector(".navbar-content")) {
+    var px = new SimpleBar(document.querySelector(".navbar-content"), {
+      autoHide: true
+    });
+    // var px = new PerfectScrollbar(".navbar-content", {
+    //   wheelSpeed: 0.5,
+    //   swipeEasing: 0,
+    //   suppressScrollX: !0,
+    //   wheelPropagation: 1,
+    //   minScrollbarLength: 40,
+    // });
   }
+  // Menu scrollbar end
+}
 // Menu click start
 function menuclick() {
   var vw = window.innerWidth;
@@ -478,12 +464,6 @@ function rmthead() {
 
 function rmmenu() {
   var tempov = document.querySelector(".dash-sidebar");
-    var tem = document.querySelector("body");
-    if (tem) {
-        document
-            .querySelector("body")
-            .classList.remove("no-scroll");
-    }
   if (tempov) {
     document
       .querySelector(".dash-sidebar")
@@ -494,7 +474,7 @@ function rmmenu() {
   }
 
   document.querySelector(".dash-sidebar .dash-menu-overlay").remove();
-  // document.querySelector(".topbar .dash-menu-overlay").remove();
+  document.querySelector(".topbar .dash-menu-overlay").remove();
 }
 
 function rmovermenu() {
@@ -505,7 +485,7 @@ function rmovermenu() {
     document.querySelector(".topbar").classList.remove("mob-sidebar-active");
   }
   document.querySelector(".dash-sidebar .dash-menu-overlay").remove();
-  // document.querySelector(".topbar .dash-menu-overlay").remove();
+  document.querySelector(".topbar .dash-menu-overlay").remove();
 }
 
 function rmactive() {
@@ -518,7 +498,7 @@ function rmactive() {
   document.querySelector(".topbar .dropdown").classList.remove("show");
   document.querySelector(".topbar .dropdown-menu").classList.remove("show");
   document.querySelector(".dash-sidebar .dash-menu-overlay").remove();
-  // document.querySelector(".topbar .dash-menu-overlay").remove();
+  document.querySelector(".topbar .dash-menu-overlay").remove();
 }
 
 function rmmini() {
@@ -631,7 +611,6 @@ function scrolltargetmenu(value) {
 // Menu click for tab Layout start
 var tablayclick = document.querySelector(".tab-sidemenu > ul > li");
 if (tablayclick) {
-  console.log("condition");
   var tc = document.querySelectorAll(".tab-sidemenu > ul > li");
   for (var t = 0; t < tc.length; t++) {
     var c = tc[t];
@@ -651,7 +630,6 @@ if (tablayclick) {
         .querySelector(".tab-sidemenu > ul > li.active")
         .classList.remove("active");
       targetElement.classList.add("active");
-      console.log(tempcont);
       document
         .querySelector(
           '.navbar-content .dash-tabcontent[data-value="' + tempcont + '"]'
@@ -744,17 +722,9 @@ if (document.querySelector("body").classList.contains("dash-horizontal")) {
             var th = t - scrw;
             elm.classList.add("scroll-menu");
             elm.css("max-height", "calc(100vh - " + th + "px)");
-            hpx = new PerfectScrollbar(".scroll-menu", {
-              wheelSpeed: 0.5,
-              swipeEasing: 0,
-              suppressScrollX: !0,
-              wheelPropagation: 1,
-              minScrollbarLength: 40,
-            });
           }
         },
         function () {
-          hpx.destroy();
           document.querySelector(".scroll-menu").removeAttribute("style");
           document
             .querySelector(".scroll-menu")
@@ -792,17 +762,9 @@ function collapseedge() {
             var th = t - scrw;
             elm.classList.add("scroll-menu");
             elm.css("max-height", "calc(100vh - " + th + "px)");
-            hpx = new PerfectScrollbar(".scroll-menu", {
-              wheelSpeed: 0.5,
-              swipeEasing: 0,
-              suppressScrollX: !0,
-              wheelPropagation: 1,
-              minScrollbarLength: 40,
-            });
           }
         },
         function () {
-          hpx.destroy();
           document.querySelector(".scroll-menu").removeAttribute("style");
           document
             .querySelector(".scroll-menu")
@@ -819,7 +781,6 @@ for (var t = 0; t < tc.length; t++) {
   prodlike.addEventListener("change", function (event) {
     if (event.currentTarget.checked) {
       prodlike = event.target;
-      // console.log(prodlike.parentNode);
       prodlike.parentNode.insertAdjacentHTML(
         "beforeend",
         '<div class="dash-like"><div class="like-wrapper"><span><span class="dash-group"><span class="dash-dots"></span><span class="dash-dots"></span><span class="dash-dots"></span><span class="dash-dots"></span></span></span></div></div>'

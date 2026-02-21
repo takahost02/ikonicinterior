@@ -20,7 +20,6 @@ class Vender extends Authenticatable
         'contact',
         'avatar',
         'is_active',
-        'is_enable_login',
         'created_by',
         'email_verified_at',
         'billing_name',
@@ -37,7 +36,6 @@ class Vender extends Authenticatable
         'shipping_phone',
         'shipping_zip',
         'shipping_address',
-        'last_login_at',
     ];
 
     protected $hidden = [
@@ -99,6 +97,12 @@ class Vender extends Authenticatable
         $settings = Utility::settings();
 
         return date($settings['site_time_format'], strtotime($time));
+    }
+    public function purchaseNumberFormat($number)
+    {
+        $settings = Utility::settings();
+
+        return $settings["purchase_prefix"] . sprintf("%05d", $number);
     }
 
     public function invoiceNumberFormat($number)
@@ -222,12 +226,8 @@ class Vender extends Authenticatable
 
     public function vendorOverdue($vendorId)
     {
-        $dueBill = Bill:: where('vender_id', $vendorId)->whereNotIn(
-            'status', [
-                        '0',
-                        '4',
-                    ]
-        )->where('due_date', '<', date('Y-m-d'))->get();
+        $dueBill = Bill:: where('vender_id', $vendorId)->whereNotIn('status', ['0', '4',])
+            ->where('due_date', '<', date('Y-m-d'))->get();
         $due     = 0;
         foreach($dueBill as $bill)
         {
@@ -237,34 +237,19 @@ class Vender extends Authenticatable
         return $due;
     }
 
-    public function vendorPaid($vendorId)
+    public function bills()
     {
-        $vendorPaid = Bill::where('vender_id', $vendorId)->whereNotIn(
-            'status', [
-                        '0',
-                        '1',
-                    ]
-        )->get();
-
-        $paid         = 0;
-        foreach ($vendorPaid as $invoice) {
-            $paid += ($invoice->getTotal() - $invoice->getDue());
-        }
-
-        return $paid;
+        return $this->hasMany(Bill::class, 'vender_id');
     }
 
     public function vendorTotalBillSum($vendorId)
     {
-        $bills = Bill:: where('vender_id', $vendorId)->get();
-        $total = 0;
-        foreach($bills as $bill)
-        {
-            $total += $bill->getTotal();
-        }
-
-        return $total;
+        return $this->bills()
+            ->with(['items']) // Eager load the items relationship to avoid N+1 problem
+            ->get()
+            ->sum->getTotal();
     }
+
 
     public function vendorTotalBill($vendorId)
     {

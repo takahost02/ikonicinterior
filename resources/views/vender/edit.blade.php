@@ -1,157 +1,142 @@
-{{Form::model($vender,array('route' => array('vender.update', $vender->id), 'method' => 'PUT','class'=>'needs-validation','novalidate')) }}
+{{Form::model($vender,array('route' => array('vender.update', $vender->id), 'method' => 'PUT', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
 
-    <h5 class="sub-title">{{__('Basic Info')}}</h5>
+    <h5 class="sub-title mb-3">{{__('Basic Info')}}</h5>
     <div class="row">
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{Form::label('name',__('Name'),array('class'=>'form-label')) }}<x-required></x-required>
-                <div class="form-icon-user">
-                    <span><i class="ti ti-address-card"></i></span>
-                    {{Form::text('name',null,array('class'=>'form-control','required'=>'required', 'placeholder'=> __('Enter Name')))}}
-                </div>
+                {{Form::text('name',null,array('class'=>'form-control','required'=>'required', 'placeholder'=>__('Enter Name')))}}
             </div>
         </div>
-
-        <x-mobile  div-class="col-md-6" name="contact" label="{{ __('Contact') }}" Placeholder="{{ __('Enter Contact') }}" required></x-mobile>
-
-        <div class="col-lg-4 col-md-4 col-sm-6">
+        <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
-                {{Form::label('email',__('Email'),['class'=>'form-label'])}}<x-required></x-required>
-                <div class="form-icon-user">
-                    {{Form::text('email',null,array('class'=>'form-control','required'=>'required', 'placeholder'=> __('Enter Email')))}}
-                </div>
+                <x-mobile label="{{__('Contact')}}" name="contact" value="{{$vender->contact}}" required placeholder="Enter Contact"></x-mobile>
+
             </div>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{Form::label('tax_number',__('Tax Number'),['class'=>'form-label'])}}
-                <div class="form-icon-user">
-                    <span><i class="ti ti-crosshairs"></i></span>
-                    {{Form::text('tax_number',null,array('class'=>'form-control', 'placeholder'=> __('Enter Tax Number')))}}
-                </div>
+                {{Form::text('tax_number',null,array('class'=>'form-control', 'placeholder'=>__('Enter Tax Number')))}}
+
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-6">
+            <div class="form-group">
+                {{Form::label('balance',__('Balance'),['class'=>'form-label'])}}
+                {{Form::number('balance',null,array('class'=>'form-control' , 'placeholder' => __('Enter Balance')))}}
             </div>
         </div>
         @if(!$customFields->isEmpty())
-            <div class="col-lg-4 col-md-4 col-sm-6">
-                <div class="tab-pane fade show" id="tab-2" role="tabpanel">
                     @include('customFields.formBuilder')
-                </div>
-            </div>
         @endif
     </div>
-    <h5 class="sub-title">{{__('BIlling Address')}}</h5>
+    <h5 class="sub-title mb-3">{{__('Billing Address')}}</h5>
     <div class="row">
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{Form::label('billing_name',__('Name'),array('class'=>'form-label')) }}
-                <div class="form-icon-user">
-                    {{Form::text('billing_name',null,array('class'=>'form-control', 'placeholder'=> __('Enter Name')))}}
-                </div>
-            </div>
-        </div>
-
-        <x-mobile  div-class="col-md-6" name="billing_phone" label="{{ __('Contact') }}" Placeholder="{{ __('Enter Contact') }}" ></x-mobile>
-
-        <div class="col-md-12">
-            <div class="form-group">
-                {{Form::label('billing_address',__('Address'),array('class'=>'form-label')) }}
-                <div class="input-group">
-                    {{Form::textarea('billing_address',null,array('class'=>'form-control','rows'=>3, 'placeholder'=> __('Enter Address')))}}
-                </div>
+                {{Form::text('billing_name',null,array('class'=>'form-control', 'placeholder'=>__('Enter Name')))}}
             </div>
         </div>
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
+                {{Form::label('billing_phone',__('Phone'),array('class'=>'form-label')) }}
+                {{Form::text('billing_phone',null,array('class'=>'form-control', 'placeholder'=>__('Enter Phone')))}}
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="form-group">
+                {{Form::label('billing_address',__('Address'),array('class'=>'form-label')) }}
+                {{Form::textarea('billing_address',null,array('class'=>'form-control','rows'=>3, 'placeholder'=>__('Enter Address')))}}
+            </div>
+        </div>
+
+
+        <div class="col-lg-6 col-md-6 col-sm-6">
+            <div class="form-group">
                 {{Form::label('billing_city',__('City'),array('class'=>'form-label')) }}
-                <div class="form-icon-user">
-                    {{Form::text('billing_city',null,array('class'=>'form-control', 'placeholder'=> __('Enter City')))}}
-                </div>
+                {{Form::text('billing_city',null,array('class'=>'form-control', 'placeholder'=>__('Enter City')))}}
             </div>
         </div>
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{Form::label('billing_state',__('State'),array('class'=>'form-label')) }}
-                <div class="form-icon-user">
-                    {{Form::text('billing_state',null,array('class'=>'form-control', 'placeholder'=> __('Enter State')))}}
-                </div>
+                {{Form::text('billing_state',null,array('class'=>'form-control', 'placeholder'=>__('Enter State')))}}
             </div>
         </div>
 
-        <div class="col-lg-6 col-md-46 col-sm-6">
+        <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{Form::label('billing_country',__('Country'),array('class'=>'form-label')) }}
-                <div class="form-icon-user">
-                    {{Form::text('billing_country',null,array('class'=>'form-control', 'placeholder'=> __('Enter Country')))}}
-                </div>
+                {{Form::text('billing_country',null,array('class'=>'form-control', 'placeholder'=>__('Enter Country')))}}
             </div>
         </div>
+
+
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{Form::label('billing_zip',__('Zip Code'),array('class'=>'form-label')) }}
-                <div class="form-icon-user">
-                    {{Form::text('billing_zip',null,array('class'=>'form-control', 'placeholder'=> __('Enter Zip Code')))}}
-                </div>
+                {{Form::text('billing_zip',null,array('class'=>'form-control', 'placeholder'=>__('Enter Zip')))}}
             </div>
         </div>
-
 
     </div>
 
     @if(App\Models\Utility::getValByName('shipping_display')=='on')
-        <div class="col-md-12 text-end">
+        <div class="col-md-12 text-end mb-3">
             <input type="button" id="billing_data" value="{{__('Shipping Same As Billing')}}" class="btn btn-primary">
         </div>
-        <h5 class="sub-title">{{__('Shipping Address')}}</h5>
+        <h5 class="sub-title mb-3">{{__('Shipping Address')}}</h5>
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6">
                 <div class="form-group">
                     {{Form::label('shipping_name',__('Name'),array('class'=>'form-label')) }}
-                    <div class="form-icon-user">
-                        {{Form::text('shipping_name',null,array('class'=>'form-control', 'placeholder'=> __('Enter Name')))}}
-                    </div>
+                    {{Form::text('shipping_name',null,array('class'=>'form-control', 'placeholder'=>__('Enter Name')))}}
+
                 </div>
             </div>
-         
-            <x-mobile  div-class="col-md-6" name="shipping_phone" label="{{ __('Contact') }}" Placeholder="{{ __('Enter Contact') }}" ></x-mobile>
+            <div class="col-lg-6 col-md-6 col-sm-6">
+                <div class="form-group">
+                    {{Form::label('shipping_phone',__('Phone'),array('class'=>'form-label')) }}
+                    {{Form::text('shipping_phone',null,array('class'=>'form-control', 'placeholder'=>__('Enter Phone')))}}
 
+                </div>
+            </div>
             <div class="col-md-12">
                 <div class="form-group">
                     {{Form::label('shipping_address',__('Address'),array('class'=>'form-label')) }}
-                    <div class="input-group">
-                        {{Form::textarea('shipping_address',null,array('class'=>'form-control','rows'=>3, 'placeholder'=> __('Enter Address')))}}
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6">
-                <div class="form-group">
-                    {{Form::label('shipping_city',__('City'),array('class'=>'form-label')) }}
-                        {{Form::text('shipping_city',null,array('class'=>'form-control', 'placeholder'=> __('Enter City')))}}
-                    </div>
-                </div>
-            <div class="col-lg-6 col-md-6 col-sm-6">
-                <div class="form-group">
-                    {{Form::label('shipping_state',__('State'),array('class'=>'form-label')) }}
-                    <div class="form-icon-user">
-                        {{Form::text('shipping_state',null,array('class'=>'form-control', 'placeholder'=> __('Enter State')))}}
-                    </div>
+                    {{Form::textarea('shipping_address',null,array('class'=>'form-control','rows'=>3, 'placeholder'=>__('Enter Address')))}}
+
                 </div>
             </div>
 
-            <div class="col-lg-6 col-md-6 col-sm-6">
+
+                <div class="col-lg-6 col-md-6 col-sm-6">
                 <div class="form-group">
-                    {{Form::label('shipping_country',__('Country'),array('class'=>'form-label')) }}
-                    <div class="form-icon-user">
-                        {{Form::text('shipping_country',null,array('class'=>'form-control', 'placeholder'=> __('Enter Country')))}}
+                    {{Form::label('shipping_city',__('City'),array('class'=>'form-label')) }}
+                    {{Form::text('shipping_city',null,array('class'=>'form-control', 'placeholder'=>__('Enter City')))}}
+                </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <div class="form-group">
+                        {{Form::label('shipping_state',__('State'),array('class'=>'form-label')) }}
+                        {{Form::text('shipping_state',null,array('class'=>'form-control', 'placeholder'=>__('Enter State')))}}
                     </div>
                 </div>
-            </div>
+                <div class="col-lg-6 col-md-6 col-sm-6">
+                    <div class="form-group">
+                        {{Form::label('shipping_country',__('Country'),array('class'=>'form-label')) }}
+                        {{Form::text('shipping_country',null,array('class'=>'form-control', 'placeholder'=>__('Enter Country')))}}
+                    </div>
+                </div>
+
             <div class="col-lg-6 col-md-6 col-sm-6">
                 <div class="form-group">
                     {{Form::label('shipping_zip',__('Zip Code'),array('class'=>'form-label')) }}
-                    <div class="form-icon-user">
-                        {{Form::text('shipping_zip',null,array('class'=>'form-control', 'placeholder'=> __('Enter Zip Code')))}}
-                    </div>
+                    {{Form::text('shipping_zip',null,array('class'=>'form-control', 'placeholder'=>__('Enter Zip')))}}
+
                 </div>
             </div>
 
@@ -161,7 +146,7 @@
 </div>
 
 <div class="modal-footer">
-    <input type="button" value="{{__('Cancel')}}" class="btn btn-light" data-bs-dismiss="modal">
+    <input type="button" value="{{__('Cancel')}}" class="btn btn-secondary" data-bs-dismiss="modal">
     <input type="submit" value="{{__('Update')}}" class="btn btn-primary">
 </div>
 

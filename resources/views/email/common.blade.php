@@ -1,8 +1,8 @@
 <!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 @php
-    $logo=asset(Storage::url('uploads/logo/'));
- $company_logo = \App\Models\Utility::getValByName('company_logo');
+    $logo=\App\Models\Utility::get_file('uploads/logo');
+    $company_logo = Utility::getValByName('company_logo_dark');
 @endphp
 <head>
     <title>
@@ -133,7 +133,7 @@
                                                                 <tbody>
                                                                 <tr>
                                                                     <td style="width:110px;">
-                                                                        <img alt="" height="auto" src="{{$logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo.png')}}" style="border:none;display:block;outline:none;text-decoration:none;height:auto;width:100%;" title="" width="110"/>
+                                                                        <img alt="" height="100" src="{{$logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png')}}" style="border:none;display:block;outline:none;text-decoration:none;height:auto;width:100%;" title="" width="110"/>
                                                                     </td>
                                                                 </tr>
                                                                 </tbody>
@@ -155,19 +155,19 @@
     </table>
     <table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600">
         <tr>
-            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
-                <div style="background:#ffffff;background-color:#ffffff;Margin:0px auto;max-width:600px;">
+            <td >
+                <div >
                     <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;">
                         <tbody>
                         <tr>
-                            <td style="direction:ltr;font-size:0px;padding:20px 0px 20px 0px;padding-bottom:70px;padding-top:30px;text-align:center;vertical-align:top;">
-                                <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                            <td >
+                                <table >
                                     <tr>
-                                        <td class="" style="vertical-align:top;width:600px;">
-                                            <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
+                                        <td >
+                                            <div class="mj-column-per-100 outlook-group-fix">
                                                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                                                     <tr>
-                                                        <td align="left" style="font-size:0px;padding:0px 25px 0px 25px;padding-top:0px;padding-right:50px;padding-bottom:0px;padding-left:50px;word-break:break-word;">
+                                                        <td style="padding:25px">
                                                             @yield('content')
                                                         </td>
                                                     </tr>

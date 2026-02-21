@@ -1,23 +1,20 @@
-
 <div class="card bg-none card-box">
-    {{ Form::open(array('route' => array('vender.bill.send.mail', $bill_id),'class'=>'needs-validation','novalidate')) }}
-    <div class="row mt-2 mx-2">
+    {{ Form::open(array('route' => array('vender.bill.send.mail',$bill_id))) }}
+    <div class="row">
         <div class="form-group col-md-12">
-            {{ Form::label('email', __('Email'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::email('email', '', ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter email')]) }}
+            {{ Form::label('email', __('Email')) }}
+            {{ Form::text('email', '', array('class' => 'form-control','required'=>'required')) }}
             @error('email')
-                <span class="invalid-feedback" role="alert">
-                    <strong class="text-danger">{{ $message }}</strong>
-                </span>
+            <span class="invalid-email" role="alert">
+            <strong class="text-danger">{{ $message }}</strong>
+        </span>
             @enderror
         </div>
     </div>
-
-    <div class="row mt-3 mx-2">
-        <div class="col-md-12 text-end">
-            <input type="button" value="{{ __('Cancel') }}" class="btn btn-secondary" data-bs-dismiss="modal">
-            <input type="submit" value="{{ __('Send') }}" class="btn btn-primary">
-        </div>
+    <div class="col-md-12 px-0">
+        <input type="submit" value="{{__('Create')}}" class="btn-create badge-blue">
+        <input type="button" value="{{__('Cancel')}}" class="btn-create bg-gray" data-dismiss="modal">
     </div>
     {{ Form::close() }}
+
 </div>

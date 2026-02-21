@@ -15,12 +15,17 @@ class FaqController extends Controller
      */
     public function index()
     {
-        $settings = LandingPageSetting::settings();
-        $faqs = json_decode($settings['faqs'], true) ?? [];
+        if(\Auth::user()->type == 'super admin')
+        {
+            $settings = LandingPageSetting::landingPageSetting();
+            $faqs = json_decode($settings['faqs'], true) ?? [];
+            return view('landingpage::landingpage.faq.index', compact('settings','faqs'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
 
-        // dd($feature_of_features);
-
-        return view('landingpage::landingpage.faq.index', compact('settings', 'faqs'));
     }
 
     /**
@@ -40,16 +45,23 @@ class FaqController extends Controller
     public function store(Request $request)
     {
 
-        $data['is_faq_section_on']= isset($request->is_faq_section_on) && $request->is_faq_section_on == 'on' ? 'on' : 'off' ;
-        $data['faq_title'] = $request->faq_title;
-        $data['faq_heading'] = $request->faq_heading;
-        $data['faq_description'] = $request->faq_description;
-
-        foreach ($data as $key => $value) {
-            LandingPageSetting::updateOrCreate(['name' =>  $key], ['value' => $value]);
+        if($request->faq_status){
+            $faq_status = 'on';
+        }else{
+            $faq_status = 'off';
         }
 
-        return redirect()->back()->with(['success' => 'Setting update successfully']);
+
+        $data['faq_status']= $faq_status;
+        $data['faq_title']= $request->faq_title;
+        $data['faq_heading']= $request->faq_heading;
+        $data['faq_description']= $request->faq_description;
+
+        foreach($data as $key => $value){
+            LandingPageSetting::updateOrCreate(['name' =>  $key],['value' => $value]);
+        }
+
+        return redirect()->back()->with(['success'=> 'Setting update successfully']);
     }
 
     /**
@@ -95,44 +107,40 @@ class FaqController extends Controller
 
 
 
-    public function faq_create()
-    {
+    public function faq_create(){
         $settings = LandingPageSetting::settings();
         return view('landingpage::landingpage.faq.create');
     }
 
 
 
-    public function faq_store(Request $request)
-    {
+    public function faq_store(Request $request){
 
         $settings = LandingPageSetting::settings();
         $data = json_decode($settings['faqs'], true);
 
-        $datas['faq_questions'] = $request->faq_questions;
-        $datas['faq_answer'] = $request->faq_answer;
+        $datas['faq_questions']= $request->faq_questions;
+        $datas['faq_answer']= $request->faq_answer;
 
         $data[] = $datas;
         $data = json_encode($data);
-        LandingPageSetting::updateOrCreate(['name' =>  'faqs'], ['value' => $data]);
+        LandingPageSetting::updateOrCreate(['name' =>  'faqs'],['value' => $data]);
 
-        return redirect()->back()->with(['success' => 'Faq add successfully']);
+        return redirect()->back()->with(['success'=> 'Faq add successfully']);
     }
 
 
 
-    public function faq_edit($key)
-    {
+    public function faq_edit($key){
         $settings = LandingPageSetting::settings();
         $faqs = json_decode($settings['faqs'], true);
         $faq = $faqs[$key];
-        return view('landingpage::landingpage.faq.edit', compact('faq', 'key'));
+        return view('landingpage::landingpage.faq.edit', compact('faq','key'));
     }
 
 
 
-    public function faq_update(Request $request, $key)
-    {
+    public function faq_update(Request $request, $key){
 
         $settings = LandingPageSetting::settings();
         $data = json_decode($settings['faqs'], true);
@@ -141,9 +149,9 @@ class FaqController extends Controller
         $data[$key]['faq_answer'] = $request->faq_answer;
 
         $data = json_encode($data);
-        LandingPageSetting::updateOrCreate(['name' =>  'faqs'], ['value' => $data]);
+        LandingPageSetting::updateOrCreate(['name' =>  'faqs'],['value' => $data]);
 
-        return redirect()->back()->with(['success' => 'Faq update successfully']);
+        return redirect()->back()->with(['success'=> 'Faq update successfully']);
     }
 
 
@@ -153,7 +161,8 @@ class FaqController extends Controller
         $settings = LandingPageSetting::settings();
         $pages = json_decode($settings['faqs'], true);
         unset($pages[$key]);
-        LandingPageSetting::updateOrCreate(['name' =>  'faqs'], ['value' => $pages]);
-        return redirect()->back()->with(['success' => 'Faq delete successfully']);
+        LandingPageSetting::updateOrCreate(['name' =>  'faqs'],['value' => $pages]);
+        return redirect()->back()->with(['success'=> 'Faq delete successfully']);
     }
+
 }

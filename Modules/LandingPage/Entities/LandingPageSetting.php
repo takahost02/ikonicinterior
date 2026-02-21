@@ -101,15 +101,8 @@ class LandingPageSetting extends Model
             "joinus_heading" => "",
             "joinus_description" => "",
 
-            "is_feature_cards_on" => "on",
-            "is_discover_section_on" => "on",
-            "is_screenshots_section_on" => "on",
-            "is_pricing_plan_section_on" => "on",
-            "is_faq_section_on" => "on",
-            "is_joinus_section_on" => "on",
-            "is_testimonials_section_on" => "on",
-            "is_testimonials_section_on" => "on",
-            "is_feature_section_on" => "on",
+
+
 
         ];
 
@@ -167,14 +160,6 @@ class LandingPageSetting extends Model
 
 
                 $file = $request->$key_name;
-                $extension = strtolower($file->getClientOriginalExtension());
-                $allowed_extensions = explode(',', $mimes);
-                if (empty($extension) || !in_array($extension, $allowed_extensions)) {
-                    return [
-                        'flag' => 0,
-                            'msg' => 'The ' . $key_name . ' must be a file of type: ' . implode(', ', $allowed_extensions) . '.',
-                    ];
-                }
 
                 if(count($custom_validation) > 0){
 
@@ -255,6 +240,18 @@ class LandingPageSetting extends Model
         }
     }
 
+    private static $settings = NULL;
+
+    public static function landingPageSetting()
+    {
+        if(self::$settings == null)
+        {
+            $setting     = LandingPageSetting::settings();
+            self::$settings = $setting;
+        }
+
+        return self::$settings;
+    }
     public static function keyWiseUpload_file($request, $key_name, $name, $path, $data_key, $custom_validation = [])
     {
 
@@ -303,16 +300,7 @@ class LandingPageSetting extends Model
 
 
                 $file = $request->$key_name;
-                foreach ($multifile as $key => $value) {
-                    $extension = strtolower($value->getClientOriginalExtension());
-                    $allowed_extensions = explode(',', $mimes);
-                    if (empty($extension) || !in_array($extension, $allowed_extensions)) {
-                        return [
-                            'flag' => 0,
-                                'msg' => 'The ' . $key_name . ' must be a file of type: ' . implode(', ', $allowed_extensions) . '.',
-                        ];
-                    }
-                }
+
 
                 if (count($custom_validation) > 0) {
                     $validation = $custom_validation;
@@ -357,13 +345,12 @@ class LandingPageSetting extends Model
                             $name
                         );
 
-                        // $path = $path.$name;
 
                     } else if ($settings['storage_setting'] == 's3') {
 
                         $path = \Storage::disk('s3')->putFileAs(
                             $path,
-                            $request->file($key_name)[$data_key][$key_name],
+                            $file,
                             $name
                         );
                     }

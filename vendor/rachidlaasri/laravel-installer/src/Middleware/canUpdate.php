@@ -52,9 +52,12 @@ class canUpdate
         $migrations = $this->getMigrations();
         $dbMigrations = $this->getExecutedMigrations();
 
+        $Modulemigrations = glob(base_path().'/Modules/LandingPage/Database'.DIRECTORY_SEPARATOR.'Migrations'.DIRECTORY_SEPARATOR.'*.php');
+        $totalMigration = count($Modulemigrations) + count($migrations);
+        
         // If the count of migrations and dbMigrations is equal,
         // then the update as already been updated.
-        if (count($migrations) == count($dbMigrations)) {
+        if ($totalMigration == count($dbMigrations)) {
             return true;
         }
 

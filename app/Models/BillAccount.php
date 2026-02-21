@@ -17,4 +17,5 @@ class BillAccount extends Model
         'ref_id',
     ];
 
+
 }

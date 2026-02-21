@@ -23,16 +23,20 @@ class StockReport extends Model
         return $this->hasOne('App\Models\ProductService', 'id', 'product_id');
     }
 
+
+    //for export
     public static function products($product)
     {
         $categoryArr  = explode(',', $product);
-      
-        foreach ($categoryArr as $product)  
+
+        foreach ($categoryArr as $product)
         {
             $product    = ProductService::find($product);
             $categoryArr = isset($product) ? $product->name : "";
         }
         return $categoryArr;
     }
+
+
 
 }

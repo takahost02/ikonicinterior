@@ -27,9 +27,6 @@ abstract class TaskOptions
      * @param string $workflowSid The SID of the Workflow that you would like to handle routing for the new Task. If there is only one Workflow defined for the Workspace that you are posting the new task to, this parameter is optional.
      * @param string $attributes A URL-encoded JSON string with the attributes of the new task. This value is passed to the Workflow's `assignment_callback_url` when the Task is assigned to a Worker. For example: `{ \\\"task_type\\\": \\\"call\\\", \\\"twilio_call_sid\\\": \\\"CAxxx\\\", \\\"customer_ticket_number\\\": \\\"12345\\\" }`.
      * @param \DateTime $virtualStartTime The virtual start time to assign the new task and override the default. When supplied, the new task will have this virtual start time. When not supplied, the new task will have the virtual start time equal to `date_created`. Value can't be in the future.
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
-     * @param string $ignoreCapacity A boolean that indicates if the Task should respect a Worker's capacity and availability during assignment. This field can only be used when the `RoutingTarget` field is set to a Worker SID. By setting `IgnoreCapacity` to a value of `true`, `1`, or `yes`, the Task will be routed to the Worker without respecting their capacity and availability. Any other value will enforce the Worker's capacity and availability. The default value of `IgnoreCapacity` is `true` when the `RoutingTarget` is set to a Worker SID.
-     * @param string $taskQueueSid The SID of the TaskQueue in which the Task belongs
      * @return CreateTaskOptions Options builder
      */
     public static function create(
@@ -39,10 +36,7 @@ abstract class TaskOptions
         string $taskChannel = Values::NONE,
         string $workflowSid = Values::NONE,
         string $attributes = Values::NONE,
-        \DateTime $virtualStartTime = null,
-        string $routingTarget = Values::NONE,
-        string $ignoreCapacity = Values::NONE,
-        string $taskQueueSid = Values::NONE
+        \DateTime $virtualStartTime = null
 
     ): CreateTaskOptions
     {
@@ -52,10 +46,7 @@ abstract class TaskOptions
             $taskChannel,
             $workflowSid,
             $attributes,
-            $virtualStartTime,
-            $routingTarget,
-            $ignoreCapacity,
-            $taskQueueSid
+            $virtualStartTime
         );
     }
 
@@ -83,7 +74,6 @@ abstract class TaskOptions
      * @param string $taskQueueSid The SID of the TaskQueue with the Tasks to read. Returns the Tasks waiting in the TaskQueue identified by this SID.
      * @param string $taskQueueName The `friendly_name` of the TaskQueue with the Tasks to read. Returns the Tasks waiting in the TaskQueue identified by this friendly name.
      * @param string $evaluateTaskAttributes The attributes of the Tasks to read. Returns the Tasks that match the attributes specified in this parameter.
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
      * @param string $ordering How to order the returned Task resources. By default, Tasks are sorted by ascending DateCreated. This value is specified as: `Attribute:Order`, where `Attribute` can be either `DateCreated`, `Priority`, or `VirtualStartTime` and `Order` can be either `asc` or `desc`. For example, `Priority:desc` returns Tasks ordered in descending order of their Priority. Pairings of sort orders can be specified in a comma-separated list such as `Priority:desc,DateCreated:asc`, which returns the Tasks in descending Priority order and ascending DateCreated Order. The only ordering pairing not allowed is DateCreated and VirtualStartTime.
      * @param bool $hasAddons Whether to read Tasks with Add-ons. If `true`, returns only Tasks with Add-ons. If `false`, returns only Tasks without Add-ons.
      * @return ReadTaskOptions Options builder
@@ -97,7 +87,6 @@ abstract class TaskOptions
         string $taskQueueSid = Values::NONE,
         string $taskQueueName = Values::NONE,
         string $evaluateTaskAttributes = Values::NONE,
-        string $routingTarget = Values::NONE,
         string $ordering = Values::NONE,
         bool $hasAddons = Values::BOOL_NONE
 
@@ -111,7 +100,6 @@ abstract class TaskOptions
             $taskQueueSid,
             $taskQueueName,
             $evaluateTaskAttributes,
-            $routingTarget,
             $ordering,
             $hasAddons
         );
@@ -161,9 +149,6 @@ class CreateTaskOptions extends Options
      * @param string $workflowSid The SID of the Workflow that you would like to handle routing for the new Task. If there is only one Workflow defined for the Workspace that you are posting the new task to, this parameter is optional.
      * @param string $attributes A URL-encoded JSON string with the attributes of the new task. This value is passed to the Workflow's `assignment_callback_url` when the Task is assigned to a Worker. For example: `{ \\\"task_type\\\": \\\"call\\\", \\\"twilio_call_sid\\\": \\\"CAxxx\\\", \\\"customer_ticket_number\\\": \\\"12345\\\" }`.
      * @param \DateTime $virtualStartTime The virtual start time to assign the new task and override the default. When supplied, the new task will have this virtual start time. When not supplied, the new task will have the virtual start time equal to `date_created`. Value can't be in the future.
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
-     * @param string $ignoreCapacity A boolean that indicates if the Task should respect a Worker's capacity and availability during assignment. This field can only be used when the `RoutingTarget` field is set to a Worker SID. By setting `IgnoreCapacity` to a value of `true`, `1`, or `yes`, the Task will be routed to the Worker without respecting their capacity and availability. Any other value will enforce the Worker's capacity and availability. The default value of `IgnoreCapacity` is `true` when the `RoutingTarget` is set to a Worker SID.
-     * @param string $taskQueueSid The SID of the TaskQueue in which the Task belongs
      */
     public function __construct(
         
@@ -172,10 +157,7 @@ class CreateTaskOptions extends Options
         string $taskChannel = Values::NONE,
         string $workflowSid = Values::NONE,
         string $attributes = Values::NONE,
-        \DateTime $virtualStartTime = null,
-        string $routingTarget = Values::NONE,
-        string $ignoreCapacity = Values::NONE,
-        string $taskQueueSid = Values::NONE
+        \DateTime $virtualStartTime = null
 
     ) {
         $this->options['timeout'] = $timeout;
@@ -184,9 +166,6 @@ class CreateTaskOptions extends Options
         $this->options['workflowSid'] = $workflowSid;
         $this->options['attributes'] = $attributes;
         $this->options['virtualStartTime'] = $virtualStartTime;
-        $this->options['routingTarget'] = $routingTarget;
-        $this->options['ignoreCapacity'] = $ignoreCapacity;
-        $this->options['taskQueueSid'] = $taskQueueSid;
     }
 
     /**
@@ -262,42 +241,6 @@ class CreateTaskOptions extends Options
     }
 
     /**
-     * A SID of a Worker, Queue, or Workflow to route a Task to
-     *
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
-     * @return $this Fluent Builder
-     */
-    public function setRoutingTarget(string $routingTarget): self
-    {
-        $this->options['routingTarget'] = $routingTarget;
-        return $this;
-    }
-
-    /**
-     * A boolean that indicates if the Task should respect a Worker's capacity and availability during assignment. This field can only be used when the `RoutingTarget` field is set to a Worker SID. By setting `IgnoreCapacity` to a value of `true`, `1`, or `yes`, the Task will be routed to the Worker without respecting their capacity and availability. Any other value will enforce the Worker's capacity and availability. The default value of `IgnoreCapacity` is `true` when the `RoutingTarget` is set to a Worker SID.
-     *
-     * @param string $ignoreCapacity A boolean that indicates if the Task should respect a Worker's capacity and availability during assignment. This field can only be used when the `RoutingTarget` field is set to a Worker SID. By setting `IgnoreCapacity` to a value of `true`, `1`, or `yes`, the Task will be routed to the Worker without respecting their capacity and availability. Any other value will enforce the Worker's capacity and availability. The default value of `IgnoreCapacity` is `true` when the `RoutingTarget` is set to a Worker SID.
-     * @return $this Fluent Builder
-     */
-    public function setIgnoreCapacity(string $ignoreCapacity): self
-    {
-        $this->options['ignoreCapacity'] = $ignoreCapacity;
-        return $this;
-    }
-
-    /**
-     * The SID of the TaskQueue in which the Task belongs
-     *
-     * @param string $taskQueueSid The SID of the TaskQueue in which the Task belongs
-     * @return $this Fluent Builder
-     */
-    public function setTaskQueueSid(string $taskQueueSid): self
-    {
-        $this->options['taskQueueSid'] = $taskQueueSid;
-        return $this;
-    }
-
-    /**
      * Provide a friendly representation
      *
      * @return string Machine friendly representation
@@ -357,7 +300,6 @@ class ReadTaskOptions extends Options
      * @param string $taskQueueSid The SID of the TaskQueue with the Tasks to read. Returns the Tasks waiting in the TaskQueue identified by this SID.
      * @param string $taskQueueName The `friendly_name` of the TaskQueue with the Tasks to read. Returns the Tasks waiting in the TaskQueue identified by this friendly name.
      * @param string $evaluateTaskAttributes The attributes of the Tasks to read. Returns the Tasks that match the attributes specified in this parameter.
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
      * @param string $ordering How to order the returned Task resources. By default, Tasks are sorted by ascending DateCreated. This value is specified as: `Attribute:Order`, where `Attribute` can be either `DateCreated`, `Priority`, or `VirtualStartTime` and `Order` can be either `asc` or `desc`. For example, `Priority:desc` returns Tasks ordered in descending order of their Priority. Pairings of sort orders can be specified in a comma-separated list such as `Priority:desc,DateCreated:asc`, which returns the Tasks in descending Priority order and ascending DateCreated Order. The only ordering pairing not allowed is DateCreated and VirtualStartTime.
      * @param bool $hasAddons Whether to read Tasks with Add-ons. If `true`, returns only Tasks with Add-ons. If `false`, returns only Tasks without Add-ons.
      */
@@ -370,7 +312,6 @@ class ReadTaskOptions extends Options
         string $taskQueueSid = Values::NONE,
         string $taskQueueName = Values::NONE,
         string $evaluateTaskAttributes = Values::NONE,
-        string $routingTarget = Values::NONE,
         string $ordering = Values::NONE,
         bool $hasAddons = Values::BOOL_NONE
 
@@ -382,7 +323,6 @@ class ReadTaskOptions extends Options
         $this->options['taskQueueSid'] = $taskQueueSid;
         $this->options['taskQueueName'] = $taskQueueName;
         $this->options['evaluateTaskAttributes'] = $evaluateTaskAttributes;
-        $this->options['routingTarget'] = $routingTarget;
         $this->options['ordering'] = $ordering;
         $this->options['hasAddons'] = $hasAddons;
     }
@@ -468,18 +408,6 @@ class ReadTaskOptions extends Options
     public function setEvaluateTaskAttributes(string $evaluateTaskAttributes): self
     {
         $this->options['evaluateTaskAttributes'] = $evaluateTaskAttributes;
-        return $this;
-    }
-
-    /**
-     * A SID of a Worker, Queue, or Workflow to route a Task to
-     *
-     * @param string $routingTarget A SID of a Worker, Queue, or Workflow to route a Task to
-     * @return $this Fluent Builder
-     */
-    public function setRoutingTarget(string $routingTarget): self
-    {
-        $this->options['routingTarget'] = $routingTarget;
         return $this;
     }
 

@@ -8,7 +8,7 @@
 @endsection
 
 @section('action-btn')
-    <div class="d-flex">
+    <div class="float-end">
         @can('create constant unit')
             <a href="#" data-url="{{ route('product-unit.create') }}" data-ajax-popup="true" data-title="{{__('Create New Unit')}}" data-bs-toggle="tooltip" title="{{__('Create')}}"  class="btn btn-sm btn-primary">
                 <i class="ti ti-plus"></i>
@@ -19,10 +19,10 @@
 
 @section('content')
     <div class="row">
-        <div class="col-md-12">
+        @include('layouts.account_setup')
+        <div class="col-lg-9">
             <div class="card">
-                <div class="card-body table-border-style
-">
+                <div class="card-body table-border-style">
                     <div class="table-responsive">
                         <table class="table datatable">
                             <thead>
@@ -39,16 +39,16 @@
                                         <span>
                                         @can('edit constant category')
                                                 <div class="action-btn me-2">
-                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bg-info" data-url="{{ route('product-unit.edit',$unit->id) }}" data-ajax-popup="true" data-title="{{__('Edit Unit')}}" data-bs-toggle="tooltip" data-original-title="{{__('Edit')}}">
+                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bg-info" data-url="{{ route('product-unit.edit',$unit->id) }}" data-ajax-popup="true" data-title="{{__('Edit Unit')}}" data-bs-toggle="tooltip" data-bs-original-title="{{__('Edit')}}">
                                                 <i class="ti ti-pencil text-white"></i>
                                             </a>
                                                 </div>
                                             @endcan
                                             @can('delete constant category')
-                                                <div class="action-btn">
+                                                <div class="action-btn ">
 
                                                 {!! Form::open(['method' => 'DELETE', 'route' => ['product-unit.destroy', $unit->id],'id'=>'delete-form-'.$unit->id]) !!}
-                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger" data-bs-toggle="tooltip" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$unit->id}}').submit();">
+                                                    <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger" data-bs-toggle="tooltip" data-bs-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$unit->id}}').submit();">
                                                         <i class="ti ti-trash text-white"></i>
                                                     </a>
                                                 {!! Form::close() !!}

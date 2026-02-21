@@ -15,9 +15,16 @@ class TestimonialsController extends Controller
      */
     public function index()
     {
-        $settings = LandingPageSetting::settings();
-        $testimonials = json_decode($settings['testimonials'], true) ?? [];
-        return view('landingpage::landingpage.testimonials.index',compact('settings','testimonials'));
+        if(\Auth::user()->type == 'super admin')
+        {
+            $settings = LandingPageSetting::landingPageSetting();
+            $testimonials = json_decode($settings['testimonials'], true) ?? [];
+            return view('landingpage::landingpage.testimonials.index',compact('settings','testimonials'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
     }
 
     /**
@@ -36,7 +43,7 @@ class TestimonialsController extends Controller
      */
     public function store(Request $request)
     {
-        $data['is_testimonials_section_on']= isset($request->is_testimonials_section_on) && $request->is_testimonials_section_on == 'on' ? 'on' : 'off' ;
+        $data['testimonials_status']= $request->testimonials_status ? $request->testimonials_status : 'off';
         $data['testimonials_heading']= $request->testimonials_heading;
         $data['testimonials_description']= $request->testimonials_description;
         $data['testimonials_long_description']= $request->testimonials_long_description;
@@ -124,7 +131,7 @@ class TestimonialsController extends Controller
         $data = json_encode($data);
         LandingPageSetting::updateOrCreate(['name' =>  'testimonials'],['value' => $data]);
 
-        return redirect()->back()->with(['success'=> 'Testimonials add successfully']);
+        return redirect()->back()->with(['success'=> 'Testimonial add successfully']);
     }
 
     public function testimonials_edit($key){
@@ -160,9 +167,8 @@ class TestimonialsController extends Controller
         $data = json_encode($data);
         LandingPageSetting::updateOrCreate(['name' =>  'testimonials'],['value' => $data]);
 
-        return redirect()->back()->with(['success'=> 'Testimonials update successfully']);
+        return redirect()->back()->with(['success'=> 'Testimonial update successfully']);
     }
-
 
 
     public function testimonials_delete($key){
@@ -173,7 +179,7 @@ class TestimonialsController extends Controller
         unset($pages[$key]);
         LandingPageSetting::updateOrCreate(['name' =>  'testimonials'],['value' => $pages]);
 
-        return redirect()->back()->with(['success'=> 'Testimonials delete successfully']);
+        return redirect()->back()->with(['success'=> 'Testimonial delete successfully']);
     }
 
 }

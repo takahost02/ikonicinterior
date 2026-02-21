@@ -1,132 +1,98 @@
 @extends('layouts.admin')
+@section('page-title')
+    {{ __('Manage Contract') }}
+@endsection
 @push('script-page')
 @endpush
-@section('page-title')
-    {{__('Contract')}}
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item">{{ __('Contract') }}</li>
 @endsection
-@section('title')
-    <div class="d-inline-block">
-        <h5 class="h4 d-inline-block font-weight-400 mb-0 ">{{__('Contract')}}</h5>
+@section('action-btn')
+    <div class="float-end">
+        <a href="{{ route('contract.index') }}" data-bs-toggle="tooltip" title="{{ __('List View') }}"
+            class="btn btn-sm bg-light-blue-subtitle">
+            <i class="ti ti-list"></i>
+        </a>
+        @if (\Auth::user()->type == 'company')
+            <a href="#" data-size="lg" data-url="{{ route('contract.create') }}" data-ajax-popup="true"
+                data-bs-toggle="tooltip" title="{{ __('Create New Contract') }}" class="btn btn-sm btn-primary">
+                <i class="ti ti-plus"></i>
+            </a>
+        @endif
     </div>
 @endsection
-@section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
-    <li class="breadcrumb-item active" aria-current="page">{{__('Contract')}}</li>
-@endsection
 
-@section('action-btn')
-    <a href="{{ route('contract.index') }}" class="btn btn-sm btn-primary btn-icon m-1">
-        <i class="ti ti-list text-white" data-bs-toggle="tooltip" data-bs-original-title="{{ __('List View') }}"></i>
-    </a>
-    @if(\Auth::user()->type=='company')
-    <a href="#" class="btn btn-sm btn-primary btn-icon m-1" data-bs-toggle="modal"
-    data-bs-target="#exampleModal" data-url="{{ route('contract.create') }}"
-    data-bs-whatever="{{__('Create New Contract')}}"> <span class="text-white"> 
-        <i class="ti ti-plus text-white" data-bs-toggle="tooltip" data-bs-original-title="{{ __('Create') }}"></i></span>
-    </a>
-
-     
-    @endif
-@endsection
-@section('filter')
-@endsection
 @section('content')
     <div class="row">
-        @forelse ($contracts as $contract)
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">{{ $contract->subject}}</h6>
-                            </div>
-                            @if(\Auth::user()->type=='company')
-                                <div class="text-right">
-                                    <div class="actions">
-                                        <div class="dropdown action-item">
-                                            <a href="#" class="action-item" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-h"></i></a>
-                                            <div class="dropdown-menu dropdown-menu-right">
-                                                <a href="#" class="mx-3 btn btn-sm d-inline-flex align-items-center" data-bs-toggle="modal"
-                                                data-bs-target="#exampleModal" data-url="{{ route('contract.edit',$contract->id) }}" class="dropdown-item"
-                                                data-bs-whatever="{{__('Edit Contract')}}"  
-                                                data-bs-original-title="{{__('Edit Contract')}}"><span class=""> <i
-                                                        class="ti ti-pencil"></i></span>{{ __('Edit') }}</a>
-
-                                                {{-- <a href="#" data-url="{{ route('contract.edit',$contract->id) }}" data-ajax-popup="true" data-title="{{__('Edit Contract')}}" class="dropdown-item" data-bs-toggle="tooltip" data-original-title="{{__('Edit')}}">
-                                                    {{__('Edit')}}
-                                                </a> --}}
-
-                                                {!! Form::open(['method' => 'DELETE', 'route' => ['contract.destroy', $contract->id]]) !!}
-                                                    <a href="#!" class="mx-3 btn btn-sm d-inline-flex align-items-center show_confirm">
-                                                        <i class="ti ti-trash" data-bs-toggle="tooltip" data-bs-original-title="{{ __('Delete') }}"></i>{{ __('Delete') }}
-                                                    </a>
-                                                {!! Form::close() !!}
-                                                    <!-- <form method="POST" action="{{ route('contract.destroy', $contract->id) }}">
-                                                        @csrf
-                                                        <input name="_method" type="hidden" value="DELETE">
-                                                        <button type="submit" class="mx-3 btn btn-sm d-inline-flex align-items-center show_confirm" data-bs-toggle="tooltip"
-                                                        title='Delete'>
-                                                        <span class=""> <i
-                                                        class="ti ti-trash"></i></span>
-                                                        {{ __('Delete') }}
-                                                        </button>
-                                                    </form> -->
-                                            </div>
-                                        </div>
-                                    </div>
+        @foreach ($contracts as $contract)
+            <div class="col-xxl-3 col-lg-4 col-sm-6 col-12 mb-4">
+                <div class="card h-100 mb-0">
+                    <div class="card-header d-flex align-items-center gap-2 justify-content-between p-3">
+                        <h6 class="mb-0"><a href="{{ route('contract.show', $contract->id) }}"
+                                class="dashboard-link">{{ $contract->subject }}</a></h6>
+                        @if (\Auth::user()->type == 'company')
+                            <div class="btn-group card-option">
+                                <button type="button" class="btn p-0 border-0" data-bs-toggle="dropdown"
+                                    aria-haspopup="true" aria-expanded="false">
+                                    <i class="ti ti-dots-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu icon-dropdown dropdown-menu-end">
+                                    <a href="#!" data-size="lg" data-url="{{ route('contract.edit', $contract->id) }}"
+                                        data-ajax-popup="true" class="dropdown-item"
+                                        data-bs-original-title="{{ __('Edit User') }}">
+                                        <i class="ti ti-pencil"></i>
+                                        <span>{{ __('Edit') }}</span>
+                                    </a>
+                                    {!! Form::open(['method' => 'DELETE', 'route' => ['contract.destroy', $contract->id]]) !!}
+                                    <a href="#!" class="dropdown-item bs-pass-para">
+                                        <i class="ti ti-trash"></i>
+                                        <span> {{ __('Delete') }}</span>
+                                    </a>
+                                    {!! Form::close() !!}
                                 </div>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
                     </div>
-                    <div class="card-body py-3 flex-grow-1">
-
-                        <p class="text-sm mb-0">
-                            {{ $contract->description}}
+                    <div class="card-body p-3 text-center">
+                        <p class="mb-0 f-w-500 text-dark">
+                            {{ $contract->description }}
                         </p>
                     </div>
-                    <div class="card-footer py-0">
+                    <div class="card-footer py-0 p-3">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item px-0">
-                                <div class="row align-items-center">
-                                    <div class="col-6">
-                                        <span class="form-control-label">{{__('Contract Type')}}:</span>
-                                    </div>
-                                    <div class="col-6 text-right">
-                                        <span class="badge bg-primary p-2 px-3 rounded">{{ !empty($contract->types)?$contract->types->name:'' }}</span>
-                                    </div>
-                                </div>
-                            </li>
-                            <li class="list-group-item px-0">
-                                <div class="row align-items-center">
-                                    <div class="col-6">
-                                        <span class="form-control-label">{{__('Contract Value')}}:</span>
-                                    </div>
-                                    <div class="col-6 text-right">
-                                        <span class="badge bg-primary p-2 px-3 rounded">{{ \Auth::user()->priceFormat($contract->value) }}</span>
-                                    </div>
-                                </div>
-                            </li>
-                            @if(\Auth::user()->type!='client')
-                                <li class="list-group-item px-0">
-                                    <div class="row align-items-center">
-                                        <div class="col-6">
-                                            <span class="form-control-label">{{__('Client')}}:</span>
-                                        </div>
-                                        <div class="col-6 text-right">
-                                            {{ !empty($contract->clients)?$contract->clients->name:'' }}
-                                        </div>
+                            @if (\Auth::user()->type != 'client')
+                                <li class="list-group-item px-0 border-0 pb-0">
+                                    <div class="d-flex align-items-center justify-content-center gap-2 f-w-600 client-name">
+                                        <span>{{ __('Client') }}:</span>
+                                        {{ !empty($contract->clients) ? $contract->clients->name : '' }}
                                     </div>
                                 </li>
                             @endif
+                            <li class="list-group-item px-0 d-flex justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between gap-2 flex-column">
+                                    <span>{{ __('Contract Type') }}:</span>
+                                    <span
+                                        class="badge status_badge bg-secondary p-2 rounded">{{ !empty($contract->types) ? $contract->types->name : '' }}</span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between gap-2 flex-column">
+                                    <span>{{ __('Contract Value') }}:</span>
+                                    <span
+                                        class="badge status_badge bg-secondary p-2 rounded">{{ \Auth::user()->priceFormat($contract->value) }}</span>
+                                </div>
+                            </li>
+
                             <li class="list-group-item px-0">
-                                <div class="row align-items-center">
-                                    <div class="col-6">
-                                        <small>{{__('Start Date')}}:</small>
-                                        <div class="h6 mb-0">{{  \Auth::user()->dateFormat($contract->start_date )}}</div>
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <div>
+                                        <small>{{ __('Start Date') }}:</small>
+                                        <div class="h6 mt-1 mb-0">{{ \Auth::user()->dateFormat($contract->start_date) }}
+                                        </div>
                                     </div>
-                                    <div class="col-6">
-                                        <small>{{__('End Date')}}:</small>
-                                        <div class="h6 mb-0">{{  \Auth::user()->dateFormat($contract->end_date )}}</div>
+                                    <div>
+                                        <small>{{ __('End Date') }}:</small>
+                                        <div class="h6 mt-1 mb-0">{{ \Auth::user()->dateFormat($contract->end_date) }}
+                                        </div>
                                     </div>
                                 </div>
                             </li>
@@ -134,12 +100,6 @@
                     </div>
                 </div>
             </div>
-            @empty
-            <div class="text-center pt-5">
-                <H3> {{ __('No Contract Found..') }}</H3>
-            </div>
-        @endforelse
+        @endforeach
     </div>
-
 @endsection
-

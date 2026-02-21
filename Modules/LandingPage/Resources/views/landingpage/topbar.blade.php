@@ -13,25 +13,12 @@
 @endphp
 
 @push('css-page')
-    <link rel="stylesheet" href="{{asset('css/summernote/summernote-bs4.css')}}">
-@endpush
-@push('script-page')
-    <script src="{{asset('css/summernote/summernote-bs4.js')}}"></script>
-    <script>
-        $(document).ready(function() {
-            $('.summernote-simple').summernote({
-                toolbar: [
-                    ['style', ['style']],
-                    ['font', ['bold', 'italic', 'underline', 'strikethrough']],
-                    ['list', ['ul', 'ol', 'paragraph']],
-                    ['insert', ['link', 'unlink']],
-                ],
-                height: 200,
-            });
-        });
-    </script>
+    <link rel="stylesheet" href=" {{ asset('LandingPage/Resources/assets/css/summernote/summernote-bs4.css')}}" />
 @endpush
 
+@push('script-page')
+    <script src="{{ asset('LandingPage/Resources/assets/js/plugins/summernote-bs4.js')}}" referrerpolicy="origin"></script>
+@endpush
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
@@ -49,39 +36,37 @@
 
                             @include('landingpage::layouts.tab')
 
-
                         </div>
                     </div>
                 </div>
 
                 <div class="col-xl-9">
                 {{--  Start for all settings tab --}}
-                    {{Form::model(null, array('route' => array('landingpage.store'), 'method' => 'POST')) }}
+                    {{Form::model(null, array('route' => array('landingpage.store'), 'method' => 'POST', 'class'=>'needs-validation', 'novalidate')) }}
                     @csrf
                         <div class="card">
                             <div class="card-header">
-                                <div class="row align-items-center">
-                                    <div class="col-6">
-                                        <h5 class="mb-2">{{ __('Top Bar') }}</h5>
-                                    </div>
-                                    <div class="col switch-width text-end">
-                                        <div class="form-group mb-0">
-                                            <div class="custom-control custom-switch">
-                                                <input type="checkbox" data-toggle="switchbutton" data-onstyle="primary" class="" name="topbar_status"
-                                                    id="topbar_status"  {{ $settings['topbar_status'] == 'on' ? 'checked="checked"' : '' }}>
-                                                <label class="custom-control-label" for="topbar_status"></label>
+                                    <div class="row align-items-center">
+                                        <div class="col-6">
+                                            <h5 class="mb-2">{{ __('Top Bar') }}</h5>
+                                        </div>
+                                        <div class="col switch-width text-end">
+                                            <div class="form-group mb-0">
+                                                <div class="custom-control custom-switch">
+                                                    <input type="checkbox" data-toggle="switchbutton" data-onstyle="primary" class="" name="topbar_status"
+                                                        id="topbar_status" {{ $settings['topbar_status'] == 'on' ? 'checked="checked"' : '' }}>
+                                                    <label class="custom-control-label" for="topbar_status"></label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
                             </div>
 
                             <div class="card-body">
                                 <div class="row">
-
                                     <div class="form-group col-12">
-                                        {{ Form::label('content', __('Message'), ['class' => 'col-form-label text-dark']) }}
-                                        {{ Form::textarea('topbar_notification_msg',$settings['topbar_notification_msg'], ['class' => 'summernote-simple form-control', 'required' => 'required']) }}
+                                        {{ Form::label('content', __('Message'), ['class' => 'col-form-label text-dark']) }}<x-required></x-required>
+                                        {{ Form::textarea('topbar_notification_msg',$settings['topbar_notification_msg'], ['class' => 'summernote-simple form-control', 'required' => 'required', 'placeholder' => __('Write here...')]) }}
                                     </div>
 
                                 </div>

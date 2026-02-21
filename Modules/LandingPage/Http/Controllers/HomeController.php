@@ -15,8 +15,15 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $settings = LandingPageSetting::settings();
-        return view('landingpage::landingpage.homesection', compact('settings'));
+        if(\Auth::user()->type == 'super admin')
+        {
+            $settings = LandingPageSetting::landingPageSetting();
+            return view('landingpage::landingpage.homesection', compact('settings'));
+        }
+        else{
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+
     }
 
     /**
@@ -37,7 +44,7 @@ class HomeController extends Controller
     {
         $uploadedFiles = $request->all();
 
-        if ($request->home_banner) {
+        if ($request->hasFile('home_banner')) {
             $home_banner = "home_banner." . $request->home_banner->getClientOriginalExtension();
             $dir        = 'uploads/landing_page_image';
             $path = LandingPageSetting::upload_file($request, 'home_banner', $home_banner, $dir, []);
@@ -95,6 +102,7 @@ class HomeController extends Controller
         }
         return redirect()->back()->with(['success' => 'Setting update successfully']);
     }
+
 
     /**
      * Show the specified resource.

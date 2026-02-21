@@ -35,7 +35,7 @@ final class GuzzleClient implements Client {
                 $options['query'] = Query::build($params, PHP_QUERY_RFC1738);
             }
 
-            if ($method === 'POST' || $method === 'PUT') {
+            if ($method === 'POST') {
                 if ($this->hasFile($data)) {
                     $options['multipart'] = $this->buildMultipartParam($data);
                 } else {

@@ -92,16 +92,11 @@ class ServiceList extends ListResource
                 $options['totpSkew'],
             'DefaultTemplateSid' =>
                 $options['defaultTemplateSid'],
-            'Whatsapp.MsgServiceSid' =>
-                $options['whatsappMsgServiceSid'],
-            'Whatsapp.From' =>
-                $options['whatsappFrom'],
             'VerifyEventSubscriptionEnabled' =>
                 Serialize::booleanToString($options['verifyEventSubscriptionEnabled']),
         ]);
 
-        $headers = Values::of(['Content-Type' => 'application/x-www-form-urlencoded' ]);
-        $payload = $this->version->create('POST', $this->uri, [], $data, $headers);
+        $payload = $this->version->create('POST', $this->uri, [], $data);
 
         return new ServiceInstance(
             $this->version,

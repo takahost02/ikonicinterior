@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\LandingPage\Entities\LandingPageSetting;
 use Modules\LandingPage\Entities\JoinUs;
-use Illuminate\Support\Facades\Validator;
 
 
 class JoinUsController extends Controller
@@ -18,8 +17,15 @@ class JoinUsController extends Controller
      */
     public function index()
     {
-        $join_us = JoinUs::get();
-        return view('landingpage::landingpage.joinus', compact('join_us'));
+        if(\Auth::user()->type == 'super admin')
+        {
+            $join_us = JoinUs::get();
+            return view('landingpage::landingpage.joinus', compact('join_us'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
     }
 
     /**
@@ -39,7 +45,13 @@ class JoinUsController extends Controller
     public function store(Request $request)
     {
 
-        $data['is_joinus_section_on']= isset($request->is_joinus_section_on) && $request->is_joinus_section_on == 'on' ? 'on' : 'off' ;
+        if($request->joinus_status){
+            $joinus_status = 'on';
+        }else{
+            $joinus_status = 'off';
+        }
+
+        $data['joinus_status']= $joinus_status;
         $data['joinus_heading']= $request->joinus_heading;
         $data['joinus_description']= $request->joinus_description;
 
@@ -91,16 +103,18 @@ class JoinUsController extends Controller
      */
     public function destroy($id)
     {
+
         $join = JoinUs::find($id);
         $join->delete();
 
-        return redirect()->back()->with(['success'=> 'User have been removed from our community.']);
+        return redirect()->back()->with(['success'=> 'Joined user deleted successfully.']);
     }
 
 
-    public function joinUsUserStore(Request $request){
+    public function joinUsUserStore(Request $request)
+    {
 
-        $validator = Validator::make(
+        $validator = \Validator::make(
             $request->all(),
             [
                 'email' => 'required|email|unique:join_us',
@@ -108,13 +122,13 @@ class JoinUsController extends Controller
         );
         if ($validator->fails()) {
             $messages = $validator->getMessageBag();
-    
+
             return redirect()->back()->with('error', $messages->first());
         }
         $join = new JoinUs;
         $join->email = $request->email;
         $join->save();
-    
-        return redirect()->back()->with('success', 'You are joined with our community.');
+
+        return redirect()->back()->with(['success'=> 'You are joined with our community']);
     }
 }

@@ -49,7 +49,7 @@ use Twilio\Rest\Messaging\V1\Service\UsAppToPersonList;
  * @property bool|null $fallbackToLongCode
  * @property bool|null $areaCodeGeomatch
  * @property bool|null $synchronousValidation
- * @property int $validityPeriod
+ * @property int|null $validityPeriod
  * @property string|null $url
  * @property array|null $links
  * @property string|null $usecase

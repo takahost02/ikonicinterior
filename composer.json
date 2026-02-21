@@ -8,20 +8,19 @@
         "php": "^8.2",
         "anandsiddharth/laravel-paytm-wallet": "^2.0",
         "anhskohbo/no-captcha": "^3.6",
-        "arkitecht/laravel-twilio": "^1.7",
-        "authorizenet/authorizenet": "^2.0",
-        "coingate/coingate-php": "^4.1",
+        "arkitecht/laravel-twilio": "^1.6",
         "doctrine/dbal": "^4.1",
         "fedapay/fedapay-php": "^0.4.2",
         "guzzlehttp/guzzle": "^7.9",
         "iyzico/iyzipay-php": "^2.0",
         "kkomelin/laravel-translatable-string-exporter": "^1.22",
         "konekt/html": "^6.5",
+        "lab404/laravel-impersonate": "^1.7",
         "lahirulhr/laravel-payhere": "^1.0",
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
-        "laravelcollective/html": "*",
+        "laravel/ui": "^4.5",
         "league/flysystem-aws-s3-v3": "^3.28",
         "maatwebsite/excel": "^3.1",
         "mashape/unirest-php": "^3.0",
@@ -29,22 +28,24 @@
         "midtrans/midtrans-php": "^2.5",
         "milon/barcode": "^11.0",
         "mollie/mollie-api-php": "^2.71",
-        "nwidart/laravel-modules": "^11.0",
+        "munafio/chatify": "^1.5",
+        "nwidart/laravel-modules": "^11.1",
         "obydul/laraskrill": "^1.2",
         "orhanerday/open-ai": "^5.2",
         "paymentwall/paymentwall-php": "^2.2",
-        "paytabscom/laravel_paytabs": "^1.7",
         "psr/simple-cache": "^3.0",
         "rachidlaasri/laravel-installer": "^4.1",
+        "spatie/browsershot": "^4.3",
+        "spatie/laravel-google-calendar": "^3.8",
         "spatie/laravel-permission": "^6.9",
         "srmklive/paypal": "^3.0",
-        "stripe/stripe-php": "^15.8",
+        "stripe/stripe-php": "^15.7",
+        "twilio/sdk": "^7.16",
         "whichbrowser/parser": "^2.1",
-        "xendit/xendit-php": "^6.0",
         "yoomoney/yookassa-sdk-php": "^3.5"
     },
     "require-dev": {
-    	"barryvdh/laravel-debugbar": "^3.9",
+        "barryvdh/laravel-debugbar": "^3.9",
         "fakerphp/faker": "^1.23",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
@@ -58,7 +59,8 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
-            "Modules\\": "Modules/"
+            "Modules\\": "Modules/",
+            "Easebuzz\\": "app/Libraries/Easebuzz/"
         }
     },
     "autoload-dev": {
@@ -98,6 +100,6 @@
             "wikimedia/composer-merge-plugin": true
         }
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true
 }

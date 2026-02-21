@@ -10,4 +10,8 @@ class ProductServiceUnit extends Model
         'name',
         'created_by',
     ];
+
+    public function unit(){
+        return $this->hasOne('App\Models\ProductService', 'unit_id', 'id');
+    }  
 }

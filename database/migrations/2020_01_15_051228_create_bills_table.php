@@ -22,6 +22,8 @@ class CreateBillsTable extends Migration
             $table->date('due_date');
             $table->integer('order_number')->default('0');
             $table->integer('status')->default('0');
+            $table->string('type')->nullable();
+            $table->string('user_type')->nullable();
             $table->integer('shipping_display')->default('1');
             $table->date('send_date')->nullable();
             $table->integer('discount_apply')->default('0');

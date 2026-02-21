@@ -41,7 +41,6 @@ use Twilio\Rest\Trusthub\V1\CustomerProfiles\CustomerProfilesEvaluationsList;
  * @property \DateTime|null $dateUpdated
  * @property string|null $url
  * @property array|null $links
- * @property array[]|null $errors
  */
 class CustomerProfilesInstance extends InstanceResource
 {
@@ -74,7 +73,6 @@ class CustomerProfilesInstance extends InstanceResource
             'dateUpdated' => Deserialize::dateTime(Values::array_get($payload, 'date_updated')),
             'url' => Values::array_get($payload, 'url'),
             'links' => Values::array_get($payload, 'links'),
-            'errors' => Values::array_get($payload, 'errors'),
         ];
 
         $this->solution = ['sid' => $sid ?: $this->properties['sid'], ];

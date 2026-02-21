@@ -10,10 +10,10 @@
             </small>
             @enderror
         </div>
-        <div class="col-md-12">
-            <input type="submit" value="{{__('Create')}}" class="btn-create badge-blue">
-            <input type="button" value="{{__('Cancel')}}" class="btn-create bg-gray" data-dismiss="modal">
-        </div>
     </div>
-    {{ Form::close() }}
+    </div>
+<div class="modal-footer">
+    <input type="button" value="{{__('Cancel')}}" class="btn  btn-secondary" data-bs-dismiss="modal">
+    <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
 </div>
+    {{ Form::close() }}

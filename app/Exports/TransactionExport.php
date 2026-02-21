@@ -14,17 +14,11 @@ class TransactionExport implements FromCollection, WithHeadings
     public function collection()
     {
         $data = [];
-        if(\Auth::user()->type =='company')
-        {
-            $data = Transaction::where('created_by', \Auth::user()->id)->get();
-        }
-        else{
-            $data = Transaction::get();
-        } 
+        $data = Transaction::where('created_by' , \Auth::user()->id)->get();
         if (!empty($data)) {
             foreach ($data as $k => $Transaction) {
                 $account  = Transaction::accounts($Transaction->account);
-                unset($Transaction->created_by, $Transaction->updated_at, $Transaction->created_at,$Transaction->user_type, $Transaction->user_id,$Transaction->payment_id);
+                unset($Transaction->id,$Transaction->created_by, $Transaction->updated_at, $Transaction->created_at,$Transaction->user_type, $Transaction->user_id,$Transaction->payment_id);
                 $data[$k]["account"]        = $account;
             }
         }
@@ -34,7 +28,6 @@ class TransactionExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
-            "Transaction Id",
             "Account",
             "Type",
             "Amount",

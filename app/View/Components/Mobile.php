@@ -25,7 +25,7 @@ class Mobile extends Component
         $this->divClass = $divClass;
         $this->label = $label ?? __('Mobile No');
         $this->name = $name;
-        $this->placeholder = $placeholder ?? '';
+        $this->placeholder = $placeholder ?? __('Enter Mobile No');
         $this->class = $class;
         $this->value = $value;
         $this->id = $id;

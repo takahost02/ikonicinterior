@@ -2,49 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BankAccount;
+use App\Models\Branch;
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Transfer;
 use App\Models\Utility;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class TransferController extends Controller
 {
 
-    public function index(Request $request)
+    public function index()
     {
-
         if(\Auth::user()->can('manage transfer'))
         {
-            $account = BankAccount::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('holder_name', 'id');
-            $account->prepend('Select Account', '');
-
-            $query = Transfer::where('created_by', '=', \Auth::user()->creatorId());
-
-            if (str_contains($request->date, ' to ')) { 
-                $date_range = explode(' to ', $request->date);
-                $query->whereBetween('date', $date_range);
-            }elseif(!empty($request->date)){
-               
-                $query->where('date', $request->date);
-            }
-            
-            // if(!empty($request->date))
-            // {
-            //     $date_range = explode(' to ', $request->date);
-            //     $query->whereBetween('date', $date_range);
-            // }
-
-            if(!empty($request->f_account))
+            if(Auth::user()->type == 'Employee')
             {
-                $query->where('from_account', '=', $request->f_account);
+                $emp       = Employee::where('user_id', '=', \Auth::user()->id)->first();
+                $transfers = Transfer::where('created_by', '=', \Auth::user()->creatorId())->where('employee_id', '=', $emp->id)->with('employee','branch','department')->get();
             }
-            if(!empty($request->t_account))
+            else
             {
-                $query->where('to_account', '=', $request->t_account);
+                $transfers = Transfer::where('created_by', '=', \Auth::user()->creatorId())->with('employee','branch','department')->get();
             }
-            $transfers = $query->get();
 
-            return view('transfer.index', compact('transfers', 'account'));
+            return view('transfer.index', compact('transfers'));
         }
         else
         {
@@ -56,9 +40,14 @@ class TransferController extends Controller
     {
         if(\Auth::user()->can('create transfer'))
         {
-            $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $departments = Department::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $departments->prepend('Select Department', '');
+            $branches    = Branch::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $branches->prepend('Select Branch', '');
+            $employees   = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $employees->prepend('Select Employee', '');
 
-            return view('transfer.create', compact('bankAccount'));
+            return view('transfer.create', compact('employees', 'departments', 'branches'));
         }
         else
         {
@@ -68,14 +57,15 @@ class TransferController extends Controller
 
     public function store(Request $request)
     {
+
         if(\Auth::user()->can('create transfer'))
         {
             $validator = \Validator::make(
                 $request->all(), [
-                                   'from_account' => 'required|numeric',
-                                   'to_account' => 'required|numeric',
-                                   'amount' => 'required|numeric',
-                                   'date' => 'required',
+                                   'employee_id' => 'required',
+                                   'branch_id' => 'required',
+                                   'department_id' => 'required',
+                                   'transfer_date' => 'required',
                                ]
             );
             if($validator->fails())
@@ -85,22 +75,42 @@ class TransferController extends Controller
                 return redirect()->back()->with('error', $messages->first());
             }
 
-            $transfer                 = new Transfer();
-            $transfer->from_account   = $request->from_account;
-            $transfer->to_account     = $request->to_account;
-            $transfer->amount         = $request->amount;
-            $transfer->date           = $request->date;
-            $transfer->payment_method = 0;
-            $transfer->reference      = $request->reference;
-            $transfer->description    = $request->description;
-            $transfer->created_by     = \Auth::user()->creatorId();
+            $transfer                = new Transfer();
+            $transfer->employee_id   = $request->employee_id;
+            $transfer->branch_id     = $request->branch_id;
+            $transfer->department_id = $request->department_id;
+            $transfer->transfer_date = $request->transfer_date;
+            $transfer->description   = $request->description;
+            $transfer->created_by    = \Auth::user()->creatorId();
             $transfer->save();
 
-            Utility::bankAccountBalance($request->from_account, $request->amount, 'debit');
+            $setings = Utility::settings();
+            if($setings['transfer_sent'] == 1)
+            {
+                $employee             = Employee::find($transfer->employee_id);
+                $branch               = Branch::find($transfer->branch_id);
+                $department           = Department::find($transfer->department_id);
+                $transfer->name       = $employee->name;
+                $transfer->email      = $employee->email;
+                $transfer->branch     = $branch->name;
+                $transfer->department = $department->name;
 
-            Utility::bankAccountBalance($request->to_account, $request->amount, 'credit');
+                $transferArr = [
+                    'transfer_name'=>$employee->name,
+                    'transfer_email'=>$employee->email,
+                    'transfer_date'=>$transfer->transfer_date,
+                    'transfer_department'=>$transfer->department,
+                    'transfer_branch'=>$transfer->branch,
+                    'transfer_description'=>$transfer->description,
+                ];
 
-            return redirect()->route('transfer.index')->with('success', __('Amount successfully transfer.'));
+                $resp = Utility::sendEmailTemplate('transfer_sent', [$employee->id => $employee->email], $transferArr);
+
+
+                return redirect()->route('transfer.index')->with('success', __('Transfer  successfully created.') .(($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
+            }
+
+            return redirect()->route('transfer.index')->with('success', __('Transfer  successfully created.'));
         }
         else
         {
@@ -108,13 +118,26 @@ class TransferController extends Controller
         }
     }
 
+    public function show(Transfer $transfer)
+    {
+        return redirect()->route('transfer.index');
+    }
+
     public function edit(Transfer $transfer)
     {
         if(\Auth::user()->can('edit transfer'))
         {
-            $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-
-            return view('transfer.edit', compact('bankAccount', 'transfer'));
+            $departments = Department::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $branches    = Branch::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $employees   = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            if($transfer->created_by == \Auth::user()->creatorId())
+            {
+                return view('transfer.edit', compact('transfer', 'employees', 'departments', 'branches'));
+            }
+            else
+            {
+                return response()->json(['error' => __('Permission denied.')], 401);
+            }
         }
         else
         {
@@ -126,38 +149,36 @@ class TransferController extends Controller
     {
         if(\Auth::user()->can('edit transfer'))
         {
-            $validator = \Validator::make(
-                $request->all(), [
-                                   'from_account' => 'required|numeric',
-                                   'to_account' => 'required|numeric',
-                                   'amount' => 'required|numeric',
-                                   'date' => 'required',
-                               ]
-            );
-            if($validator->fails())
+            if($transfer->created_by == \Auth::user()->creatorId())
             {
-                $messages = $validator->getMessageBag();
+                $validator = \Validator::make(
+                    $request->all(), [
+                                       'employee_id' => 'required',
+                                       'branch_id' => 'required',
+                                       'department_id' => 'required',
+                                       'transfer_date' => 'required',
+                                   ]
+                );
+                if($validator->fails())
+                {
+                    $messages = $validator->getMessageBag();
 
-                return redirect()->back()->with('error', $messages->first());
+                    return redirect()->back()->with('error', $messages->first());
+                }
+
+                $transfer->employee_id   = $request->employee_id;
+                $transfer->branch_id     = $request->branch_id;
+                $transfer->department_id = $request->department_id;
+                $transfer->transfer_date = $request->transfer_date;
+                $transfer->description   = $request->description;
+                $transfer->save();
+
+                return redirect()->route('transfer.index')->with('success', __('Transfer successfully updated.'));
             }
-
-            Utility::bankAccountBalance($transfer->from_account, $transfer->amount, 'credit');
-            Utility::bankAccountBalance($transfer->to_account, $transfer->amount, 'debit');
-
-            $transfer->from_account   = $request->from_account;
-            $transfer->to_account     = $request->to_account;
-            $transfer->amount         = $request->amount;
-            $transfer->date           = $request->date;
-            $transfer->payment_method = 0;
-            $transfer->reference      = $request->reference;
-            $transfer->description    = $request->description;
-            $transfer->save();
-
-
-            Utility::bankAccountBalance($request->from_account, $request->amount, 'debit');
-            Utility::bankAccountBalance($request->to_account, $request->amount, 'credit');
-
-            return redirect()->route('transfer.index')->with('success', __('Amount successfully transfer updated.'));
+            else
+            {
+                return redirect()->back()->with('error', __('Permission denied.'));
+            }
         }
         else
         {
@@ -165,20 +186,15 @@ class TransferController extends Controller
         }
     }
 
-
     public function destroy(Transfer $transfer)
     {
-
         if(\Auth::user()->can('delete transfer'))
         {
             if($transfer->created_by == \Auth::user()->creatorId())
             {
                 $transfer->delete();
 
-                Utility::bankAccountBalance($transfer->from_account, $transfer->amount, 'credit');
-                Utility::bankAccountBalance($transfer->to_account, $transfer->amount, 'debit');
-
-                return redirect()->route('transfer.index')->with('success', __('Amount transfer successfully deleted.'));
+                return redirect()->route('transfer.index')->with('success', __('Transfer successfully deleted.'));
             }
             else
             {

@@ -13,17 +13,17 @@ class VenderExport implements FromCollection, WithHeadings
      */
     public function collection()
     {
-        if(\Auth::user()->type =='company')
-        {
-            $data = Vender::where('created_by', \Auth::user()->id )->get();
-        }
-        else{
-            $data = Vender::get();
-        } 
+        $data = Vender::where('created_by', \Auth::user()->creatorId())->get();
 
-        foreach ($data as $k => $vendor) {
-            unset($vendor->id,$vendor->vender_id,$vendor->avatar,$vendor->password, $vendor->lang,$vendor->created_at ,$vendor->updated_at,$vendor->created_by, $vendor->last_login_at, $vendor->is_active, $vendor->email_verified_at, $vendor->remember_token, $vendor->is_enable_login);
-            $data[$k]["balance"]          = \Auth::user()->priceFormat($vendor->balance);
+        foreach($data as $k => $vendor)
+        {
+            unset($vendor->id,$vendor->password, $vendor->lang,$vendor->tax_number,
+                $vendor->is_active, $vendor->avatar,$vendor->created_by,
+                $vendor->email_verified_at, $vendor->remember_token,
+                $vendor->created_at,$vendor->updated_at);
+                $data[$k]["vender_id"]        = \Auth::user()->venderNumberFormat($vendor->vender_id);
+                $data[$k]["balance"]          = \Auth::user()->priceFormat($vendor->balance);
+//              $data[$k]["avatar"]           = !empty($vendor->avatar) ? asset(\Storage::url('uploads/avatar')) . '/' . $vendor->avatar : '-';
         }
 
         return $data;
@@ -32,9 +32,9 @@ class VenderExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
+            "Vendor No",
             "Name",
             "Email",
-            "Tex Number",
             "Contact",
             "Billing Name",
             "Billing Country",
@@ -51,6 +51,7 @@ class VenderExport implements FromCollection, WithHeadings
             "Shipping Zip",
             "Shipping Address",
             "Balance",
+
         ];
     }
 }

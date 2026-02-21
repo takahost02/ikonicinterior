@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasColumn('chart_of_account_sub_types', 'created_by')) {
+
         Schema::table('chart_of_account_sub_types', function (Blueprint $table) {
             $table->integer('created_by')->after('type');                        
         });
+    }
     }
 
     /**

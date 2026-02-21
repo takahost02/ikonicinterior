@@ -12,7 +12,7 @@
         var element = document.getElementById('boxes');
         var opt = {
             margin: [0.5, 0, 0.5, 0],
-            filename: '{{App\Models\Utility::customerProposalNumberFormat($proposal->proposal_id)}}',
+            filename: '{{Utility::customerProposalNumberFormat($proposal->proposal_id)}}',
             image: {type: 'jpeg', quality: 1},
             html2canvas: {scale: 4, dpi: 72, letterRendering: true},
             jsPDF: {unit: 'in', format: 'A4'}

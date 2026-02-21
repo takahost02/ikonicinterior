@@ -1,5 +1,4 @@
 @php
-    use App\Models\Utility;
     $settings_data = \App\Models\Utility::settingsById($proposal->created_by);
 
 @endphp
@@ -84,6 +83,7 @@
 
         .no-space tr td {
             padding: 0;
+            white-space: nowrap;
         }
 
         .vertical-align-top td {
@@ -173,7 +173,7 @@
         }
     </style>
 
-    @if (env('SITE_RTL') == 'on')
+    @if ($settings_data['SITE_RTL'] == 'on')
         <link rel="stylesheet" href="{{ asset('css/bootstrap-rtl.css') }}">
     @endif
 </head>
@@ -204,13 +204,10 @@
                                     {{ $settings['company_name'] }}
                                 @endif
                                 <br>
-                                @if ($settings['company_email'])
-                                    {{ $settings['company_email'] }}
+                                @if ($settings['mail_from_address'])
+                                    {{ $settings['mail_from_address'] }}
                                 @endif
                                 <br>
-                                @if ($settings['company_telephone'])
-                                    {{ $settings['company_telephone'] }}
-                                @endif
                                 <br>
                                 @if ($settings['company_address'])
                                     {{ $settings['company_address'] }}
@@ -221,36 +218,41 @@
                                 @if ($settings['company_state'])
                                     {{ $settings['company_state'] }}
                                 @endif
+                                @if ($settings['company_zipcode'])
+                                    - {{ $settings['company_zipcode'] }}
+                                @endif
                                 @if ($settings['company_country'])
                                     <br>{{ $settings['company_country'] }}
                                 @endif
-                                @if ($settings['company_zipcode'])
-                                    - {{ $settings['company_zipcode'] }}
+                                @if ($settings['company_telephone'])
+                                    {{ $settings['company_telephone'] }}
                                 @endif
                                 <br>
                                 @if (!empty($settings['registration_number']))
                                     {{ __('Registration Number') }} : {{ $settings['registration_number'] }}
                                 @endif
-
-                                @if (App\Models\Utility::getValByName('tax_number') == 'on')
-                                    @if (!empty($settings['tax_type']) && !empty($settings['vat_number']))<br>
+                                <br>
+                                @if ($settings['vat_gst_number_switch'] == 'on')
+                                    @if (!empty($settings['tax_type']) && !empty($settings['vat_number']))
                                         {{ $settings['tax_type'] . ' ' . __('Number') }} : {{ $settings['vat_number'] }}
                                         <br>
                                     @endif
+
+                                    <strong>{{__('Tax Number ')}} : </strong>{{!empty($customer->tax_number)?$customer->tax_number:''}}
                                 @endif
                             </p>
                         </td>
                         <td>
-                            <table class="no-space">
+                            <table class="no-space" style="width: 45%;margin-left: auto;">
                                 <tbody>
-                                @if (isset($settings_data['proposal_qr_display']) && $settings_data['proposal_qr_display'] == 'on')
-                                    <tr>
-                                        <td colspan="2">
-                                            <div class="view-qrcode" style="margin-top: 0; margin-bottom: 15px;">
-                                                {!! DNS2D::getBarcodeHTML(route('pay.proposalpay', \Crypt::encrypt($proposal->proposal_id)), 'QRCODE', 2, 2) !!}
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    @if ($settings['qr_display'] == 'on')
+                                        <tr>
+                                            <td colspan="2">
+                                                <div class="view-qrcode" style="margin-top: 0; margin-bottom: 15px;">
+                                                    {!! DNS2D::getBarcodeHTML(route('proposal.link.copy', \Crypt::encrypt($proposal->proposal_id)), 'QRCODE', 2, 2) !!}
+                                                </div>
+                                            </td>
+                                        </tr>
                                     @endif
                                     <tr>
                                         <td>{{ __('Number') }}:</td>
@@ -262,6 +264,7 @@
                                         <td class="text-right">
                                             {{ Utility::dateFormat($settings, $proposal->issue_date) }}</td>
                                     </tr>
+
                                     @if (!empty($customFields) && count($proposal->customField) > 0)
                                         @foreach ($customFields as $field)
                                             <tr>
@@ -285,31 +288,44 @@
                     <tr>
                         <td>
                             <strong style="margin-bottom: 10px; display:block;">{{ __('Bill To') }}:</strong>
-                            <p>
-                                {{!empty($customer->billing_name)?$customer->billing_name:''}}<br>
-                                {{!empty($customer->billing_address)?$customer->billing_address:''}}<br>
-                                {{!empty($customer->billing_city)?$customer->billing_city:'' .', '}}, {{!empty($customer->billing_state)?$customer->billing_state:'',', '}} {{!empty($customer->billing_zip)?$customer->billing_zip:''}}<br>
-                                {{!empty($customer->billing_country)?$customer->billing_country:''}}<br>
-                                {{!empty($customer->billing_phone)?$customer->billing_phone:''}}<br>
-                            </p>
+                            @if (!empty($customer->billing_name))
+                                <p>
+                                    {{ !empty($customer->billing_name) ? $customer->billing_name : '' }}<br>
+                                    {{ !empty($customer->billing_address) ? $customer->billing_address : '' }}<br>
+                                    {{ !empty($customer->billing_city) ? $customer->billing_city : '' . ', ' }}<br>
+                                    {{ !empty($customer->billing_state) ? $customer->billing_state : '', ', ' }},
+                                    {{ !empty($customer->billing_zip) ? $customer->billing_zip : '' }}<br>
+                                    {{ !empty($customer->billing_country) ? $customer->billing_country : '' }}<br>
+                                    {{ !empty($customer->billing_phone) ? $customer->billing_phone : '' }}<br>
+
+                                </p>
+                            @else
+                                -
+                            @endif
                         </td>
                         @if ($settings['shipping_display'] == 'on')
                             <td class="text-right">
                                 <strong style="margin-bottom: 10px; display:block;">{{ __('Ship To') }}:</strong>
-                                <p>
-                                    {{!empty($customer->shipping_name)?$customer->shipping_name:''}}<br>
-                                    {{!empty($customer->shipping_address)?$customer->shipping_address:''}}<br>
-                                    {{!empty($customer->shipping_city)?$customer->shipping_city:'' . ', '}}, {{!empty($customer->shipping_state)?$customer->shipping_state:'' .', '}} {{!empty($customer->shipping_zip)?$customer->shipping_zip:''}}<br>
-                                    {{!empty($customer->shipping_country)?$customer->shipping_country:''}}<br>
-                                    {{!empty($customer->shipping_phone)?$customer->shipping_phone:''}}<br>
-                                </p>
+                                @if (!empty($customer->shipping_name))
+                                    <p>
+                                        {{ !empty($customer->shipping_name) ? $customer->shipping_name : '' }}<br>
+                                        {{ !empty($customer->shipping_address) ? $customer->shipping_address : '' }}<br>
+                                        {{ !empty($customer->shipping_city) ? $customer->shipping_city : '' . ', ' }}<br>
+                                        {{ !empty($customer->shipping_state) ? $customer->shipping_state : '' . ', ' }},
+                                        {{ !empty($customer->shipping_zip) ? $customer->shipping_zip : '' }}<br>
+                                        {{ !empty($customer->shipping_country) ? $customer->shipping_country : '' }}<br>
+                                        {{ !empty($customer->shipping_phone) ? $customer->shipping_phone : '' }}<br>
+                                    </p>
+                                @else
+                                    -
+                                @endif
                             </td>
                         @endif
                     </tr>
                 </tbody>
             </table>
             <table class="add-border proposal-summary" style="margin-top: 30px;">
-                <thead style="background-color: var(--theme-color);color: var(--white);">
+                <thead style="background: {{ $color }};color:{{ $font_color }}">
                     <tr>
                         <th>{{ __('Item') }}</th>
                         <th>{{ __('Quantity') }}</th>
@@ -324,14 +340,19 @@
                         @foreach ($proposal->itemData as $key => $item)
                             <tr>
                                 <td>{{ $item->name }}</td>
-                                <td>{{ $item->quantity }}</td>
+                                @php
+                                    $unitName = App\Models\ProductServiceUnit::find($item->unit);
+                                @endphp
+                                <td>{{ $item->quantity }} {{ $unitName != null ? '(' . $unitName->name . ')' : '' }}
+                                </td>
+
                                 <td>{{ Utility::priceFormat($settings, $item->price) }}</td>
                                 <td>{{ $item->discount != 0 ? Utility::priceFormat($settings, $item->discount) : '-' }}</td>
+                                @php
+                                    $itemtax = 0;
+                                @endphp
                                 <td>
                                     @if (!empty($item->itemTax))
-                                        @php
-                                            $itemtax = 0;
-                                        @endphp
                                         @foreach ($item->itemTax as $taxes)
                                             @php
                                                 $itemtax += $taxes['tax_price'];
@@ -342,9 +363,6 @@
                                         <span>-</span>
                                     @endif
                                 </td>
-                                @php
-                                    $itemtax = 0;
-                                @endphp
                                 <td>{{ Utility::priceFormat($settings, $item->price * $item->quantity - $item->discount + $itemtax) }}
                                 </td>
                                 @if (!empty($item->description))
@@ -365,7 +383,6 @@
                         <td>{{ Utility::priceFormat($settings, $proposal->totalRate) }}</td>
                         <td>{{ Utility::priceFormat($settings, $proposal->totalDiscount) }}</td>
                         <td>{{ Utility::priceFormat($settings, $proposal->totalTaxPrice) }}</td>
-                        <td>{{ Utility::priceFormat($settings, $proposal->getSubTotal()) }}</td>
                     </tr>
                     <tr>
                         <td colspan="4"></td>
@@ -399,10 +416,8 @@
                 </tfoot>
             </table>
             <div class="proposal-footer">
-                <p>
-                    {{ $settings['footer_title'] }} <br>
-                    {!! $settings['footer_notes'] !!}
-                </p>
+                <b>{{ $settings['footer_title'] }}</b> <br>
+                {!! $settings['footer_notes'] !!}
             </div>
         </div>
     </div>

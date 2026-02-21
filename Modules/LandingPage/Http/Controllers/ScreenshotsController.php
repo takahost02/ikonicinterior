@@ -15,13 +15,16 @@ class ScreenshotsController extends Controller
      */
     public function index()
     {
-
-        $settings = LandingPageSetting::settings();
-        $screenshots = json_decode($settings['screenshots'], true) ?? [];
-
-        // dd($screenshots);
-
-        return view('landingpage::landingpage.screenshots.index',compact('settings','screenshots'));
+        if(\Auth::user()->type == 'super admin')
+        {
+            $settings = LandingPageSetting::landingPageSetting();
+            $screenshots = json_decode($settings['screenshots'], true) ?? [];
+            return view('landingpage::landingpage.screenshots.index',compact('settings','screenshots'));
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
 
     }
 
@@ -41,7 +44,7 @@ class ScreenshotsController extends Controller
      */
     public function store(Request $request)
     {
-        $data['is_screenshots_section_on']= isset($request->is_screenshots_section_on) && $request->is_screenshots_section_on == 'on' ? 'on' : 'off' ;
+        $data['screenshots_status']= $request->screenshots_status ? $request->screenshots_status : 'off';
         $data['screenshots_heading']= $request->screenshots_heading;
         $data['screenshots_description']= $request->screenshots_description;
 
@@ -126,7 +129,7 @@ class ScreenshotsController extends Controller
         $data = json_encode($data);
         LandingPageSetting::updateOrCreate(['name' =>  'screenshots'],['value' => $data]);
 
-        return redirect()->back()->with(['success'=> 'screenshots add successfully']);
+        return redirect()->back()->with(['success'=> 'screenshot add successfully']);
     }
 
 
@@ -161,7 +164,7 @@ class ScreenshotsController extends Controller
         $data = json_encode($data);
         LandingPageSetting::updateOrCreate(['name' =>  'screenshots'],['value' => $data]);
 
-        return redirect()->back()->with(['success'=> 'screenshots update successfully']);
+        return redirect()->back()->with(['success'=> 'screenshot update successfully']);
     }
 
 
@@ -172,7 +175,7 @@ class ScreenshotsController extends Controller
         unset($pages[$key]);
         LandingPageSetting::updateOrCreate(['name' =>  'screenshots'],['value' => $pages]);
 
-        return redirect()->back()->with(['success'=> 'Screenshots delete successfully']);
+        return redirect()->back()->with(['success'=> 'Screenshot delete successfully']);
     }
 
 

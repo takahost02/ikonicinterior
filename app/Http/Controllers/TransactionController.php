@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TransactionExport;
 use App\Models\BankAccount;
 use App\Models\ProductServiceCategory;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use App\Exports\TransactionExport;
 use Maatwebsite\Excel\Facades\Excel;
-
 
 class TransactionController extends Controller
 {
@@ -50,8 +49,8 @@ class TransactionController extends Controller
             }
             else
             {
-                $start = strtotime(date('Y-m', strtotime("-5 month")));
-                $end   = strtotime(date('Y-m'));
+                $start = strtotime(date('Y-m'));
+                $end   = strtotime(date('Y-m', strtotime("-5 month")));
             }
 
             $currentdate = $start;
@@ -64,15 +63,14 @@ class TransactionController extends Controller
                 $transactions->Orwhere(
                     function ($query) use ($data){
                         $query->whereMonth('date', $data['month'])->whereYear('date', $data['year']);
-                        $query->where('transactions.created_by', '=' ,\Auth::user()->creatorId());
-
+                        $query->where('transactions.created_by', '=', \Auth::user()->creatorId());
                     }
                 );
 
                 $accounts->Orwhere(
                     function ($query) use ($data){
                         $query->whereMonth('date', $data['month'])->whereYear('date', $data['year']);
-                        $query->where('transactions.created_by', '=' ,\Auth::user()->creatorId());
+                        $query->where('transactions.created_by', '=', \Auth::user()->creatorId());
 
                     }
                 );
@@ -115,7 +113,7 @@ class TransactionController extends Controller
 
             $transactions->where('created_by', '=', \Auth::user()->creatorId());
             $accounts->where('transactions.created_by', '=', \Auth::user()->creatorId());
-            $transactions = $transactions->get();
+            $transactions = $transactions->with(['bankAccount'])->get();
             $accounts     = $accounts->get();
 
             return view('transaction.index', compact('transactions', 'account', 'category', 'filter', 'accounts'));
@@ -126,11 +124,20 @@ class TransactionController extends Controller
         }
     }
 
+    //for export in transaction report
     public function export()
     {
         $name = 'transaction_' . date('Y-m-d i:h:s');
+
+        // buffer active then clean it
+        if (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
         $data = Excel::download(new TransactionExport(), $name . '.xlsx');
 
         return $data;
     }
+
+
 }

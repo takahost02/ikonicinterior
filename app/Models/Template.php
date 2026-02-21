@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class Template extends Model
 {
     use HasFactory;
-    protected $table = 'template';
+
     protected $fillable = [
         'template_name',
         'prompt',
         'field_json',
-        'is_tone'
+        'is_tone',
     ];
+
 }

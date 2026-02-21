@@ -1,47 +1,53 @@
-@php
-    $chatGPT = \App\Models\Utility::settings('enable_chatgpt');
-    $enable_chatgpt = !empty($chatGPT);
-@endphp
-{{ Form::open(['url' => 'account-assets','class'=>'needs-validation','novalidate']) }}
+{{ Form::open(array('url' => 'account-assets', 'class'=>'needs-validation', 'novalidate')) }}
 <div class="modal-body">
+    {{-- start for ai module--}}
+    @php
+        $plan= \App\Models\Utility::getChatGPTSettings();
+    @endphp
+    @if($plan->chatgpt == 1)
+    <div class="text-end mb-0">
+        <a href="#" data-size="md" class="btn  btn-primary btn-icon btn-sm" data-ajax-popup-over="true" data-url="{{ route('generate',['account asset']) }}"
+           data-bs-placement="top" data-title="{{ __('Generate content with AI') }}">
+            <i class="fas fa-robot"></i> <span>{{__('Generate with AI')}}</span>
+        </a>
+    </div>
+    @endif
+    {{-- end for ai module--}}
     <div class="row">
-        @if ($enable_chatgpt)
-            <div>
-                <a href="#" data-size="md" data-ajax-popup-over="true" data-url="{{ route('generate', ['assets']) }}"
-                    data-bs-toggle="tooltip" data-bs-placement="top" title="{{ __('Generate') }}"
-                    data-title="{{ __('Generate content with AI') }}" class="btn btn-primary btn-sm float-end">
-                    <i class="fas fa-robot"></i>
-                    {{ __('Generate with AI') }}
-                </a>
+        <div class="col-12 form-group">
+            {{ Form::label('employee_id', __('Employee'),['class'=>'form-label']) }}
+            {{ Form::select('employee_id[]', $employee,null, array('class' => 'form-control select2','id'=>'choices-multiple1','multiple', 'placeholder'=>__('Select Employee'))) }}
+            <div class="text-xs mt-1">
+                {{ __('Create employee here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create employee') }}</b></a>
             </div>
-        @endif
-        <div class="form-group col-md-6">
-            {{ Form::label('name', __('Name'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::text('name', '', ['class' => 'form-control', 'required' => 'required', 'placeholder'=>__('Enter Name')]) }}
         </div>
         <div class="form-group col-md-6">
-            {{ Form::label('amount', __('Amount'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::number('amount', '', ['class' => 'form-control', 'required' => 'required', 'step' => '0.01', 'placeholder'=>__('Enter Amount')]) }}
+            {{ Form::label('name', __('Name'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::text('name', '', array('class' => 'form-control','required'=>'required' , 'placeholder'=>__('Enter Name'))) }}
+        </div>
+        <div class="form-group col-md-6">
+            {{ Form::label('amount', __('Amount'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::number('amount', '', array('class' => 'form-control','required'=>'required','step'=>'0.01','required'=> 'required', 'placeholder'=>__('Enter Amount'))) }}
         </div>
 
         <div class="form-group col-md-6">
-            {{ Form::label('purchase_date', __('Purchase Date'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::date('purchase_date', date('Y-m-d'), ['class' => 'form-control pc-datepicker-1', 'required' => 'required']) }}
+            {{ Form::label('purchase_date', __('Purchase Date'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::date('purchase_date','', array('class' => 'form-control ','required'=> 'required')) }}
         </div>
         <div class="form-group col-md-6">
-            {{ Form::label('supported_date', __('Supported Date'), ['class' => 'form-label']) }}<x-required></x-required>
-            {{ Form::date('supported_date', date('Y-m-d'), ['class' => 'form-control pc-datepicker-1', 'required' => 'required']) }}
+            {{ Form::label('supported_date', __('Supported Date'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::date('supported_date','', array('class' => 'form-control ','required'=> 'required')) }}
         </div>
         <div class="form-group col-md-12">
-            {{ Form::label('description', __('Description'), ['class' => 'form-label']) }}
-            {{ Form::textarea('description', '', ['class' => 'form-control', 'rows' => 3, 'placeholder'=>__('Enter Description')]) }}
+            {{ Form::label('description', __('Description'),['class'=>'form-label']) }}
+            {{ Form::textarea('description', '', array('class' => 'form-control','rows'=>3 , 'placeholder'=>__('Enter Description'))) }}
         </div>
 
     </div>
 </div>
-
 <div class="modal-footer">
-    <input type="button" value="{{ __('Cancel') }}" class="btn  btn-light" data-bs-dismiss="modal">
-    <input type="submit" value="{{ __('Create') }}" class="btn  btn-primary">
+    <input type="button" value="{{__('Cancel')}}" class="btn btn-secondary" data-bs-dismiss="modal">
+    <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
 </div>
 {{ Form::close() }}
+

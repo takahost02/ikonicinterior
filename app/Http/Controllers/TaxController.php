@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BillProduct;
 use App\Models\InvoiceProduct;
+use App\Models\ProductService;
 use App\Models\ProposalProduct;
 use App\Models\Tax;
 use Auth;
@@ -142,10 +143,11 @@ class TaxController extends Controller
                 $proposalData = ProposalProduct::whereRaw("find_in_set('$tax->id',tax)")->first();
                 $billData     = BillProduct::whereRaw("find_in_set('$tax->id',tax)")->first();
                 $invoiceData  = InvoiceProduct::whereRaw("find_in_set('$tax->id',tax)")->first();
+                $productData  = ProductService::whereRaw("find_in_set('$tax->id',tax_id)")->first();
 
-                if(!empty($proposalData) || !empty($billData) || !empty($invoiceData))
+                if(!empty($proposalData) || !empty($billData) || !empty($invoiceData) || !empty($productData))
                 {
-                    return redirect()->back()->with('error', __('this tax is already assign to proposal or bill or invoice so please move or remove this tax related data.'));
+                    return redirect()->back()->with('error', __('this tax is already assign to proposal or bill or invoice or product&service so please move or remove this tax related data.'));
                 }
 
                 $tax->delete();

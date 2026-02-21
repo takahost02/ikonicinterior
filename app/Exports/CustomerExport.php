@@ -13,30 +13,27 @@ class CustomerExport implements FromCollection, WithHeadings
      */
     public function collection()
     {
-        if(\Auth::user()->type =='company')
-        {
-            $data = Customer::where('created_by', \Auth::user()->id)->get();
-        }
-        else{
-            $data = Customer::get();
-        } 
-        
+        $data = Customer::where('created_by', \Auth::user()->creatorId())->get();
+
         foreach($data as $k => $customer)
         {
-            unset($customer->id,$customer->customer_id, $customer->avatar, $customer->is_active, $customer->password,$customer->is_enable_login, $customer->created_at, $customer->updated_at, $customer->lang, $customer->created_by, $customer->email_verified_at, $customer->remember_token,$customer->last_login_at);
+            unset($customer->id,$customer->password,$customer->avatar,
+            $customer->tax_number,$customer->is_active, $customer->lang,
+            $customer->created_by, $customer->email_verified_at, $customer->remember_token,
+            $customer->created_at,$customer->updated_at);
             $data[$k]["customer_id"] = \Auth::user()->customerNumberFormat($customer->customer_id);
             $data[$k]["balance"]     = \Auth::user()->priceFormat($customer->balance);
+            //            $data[$k]["avatar"]      = !empty($customer->avatar) ? asset(\Storage::url('uploads/avatar')) . '/' . $customer->avatar : '-';
         }
-
         return $data;
     }
 
     public function headings(): array
     {
         return [
+            "Customer No",
             "Name",
             "Email",
-            "Tex Number",
             "Contact",
             "Billing Name",
             "Billing Country",
@@ -53,6 +50,7 @@ class CustomerExport implements FromCollection, WithHeadings
             "Shipping Zip",
             "Shipping Address",
             "Balance",
+
         ];
     }
 }

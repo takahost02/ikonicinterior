@@ -2,17 +2,12 @@
 @section('page-title')
     {{__('Journal Detail')}}
 @endsection
+
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
     <li class="breadcrumb-item"><a href="{{route('journal-entry.index')}}">{{__('Journal Entry')}}</a></li>
-    <li class="breadcrumb-item">{{ \AUth::user()->journalNumberFormat($journalEntry->journal_id) }}</li>
-
+    <li class="breadcrumb-item">{{ Auth::user()->journalNumberFormat($journalEntry->journal_id) }}</li>
 @endsection
-@push('css-page')
-@endpush
-@push('script-page')
-    
-@endpush
 
 @section('content')
 
@@ -38,10 +33,9 @@
                                     <small class="font-style">
                                         <strong>{{__('To')}} :</strong><br>
                                         {{!empty($settings['company_name'])?$settings['company_name']:''}}<br>
+                                        {{!empty($settings['company_telephone'])?$settings['company_telephone']:''}}<br>
                                         {{!empty($settings['company_address'])?$settings['company_address']:''}}<br>
-                                        {{!empty($settings['company_city'])?$settings['company_city']:'' .', '}}  {{!empty($settings['company_state'])?$settings['company_state']:'' .', '}}<br>
-                                        {{!empty($settings['company_country'])?$settings['company_country']:'' .'.'}}<br>  
-                                        {{!empty($settings['company_telephone'])?$settings['company_telephone']:''}}
+                                        {{!empty($settings['company_city'])?$settings['company_city']:'' .', '}}  {{!empty($settings['company_state'])?$settings['company_state']:'' .', '}}  {{!empty($settings['company_country'])?$settings['company_country']:'' .'.'}}
                                     </small>
                                 </div>
                                 <div class="col-md-6 text-end">
@@ -72,37 +66,35 @@
                                                 <th class="text-dark">{{__('Debit')}}</th>
                                                 <th class="text-dark">{{__('Credit')}}</th>
                                                 <th class="text-dark">{{__('Amount')}}</th>
-                                                <th class="text-dark">{{__('Action')}}</th>
-
+                                                <th></th>
                                             </tr>
 
-                                            @foreach($accounts as $key => $account)
-                                            {{-- @dd($accounts); --}}
+                                            @foreach($accounts as $key =>$account)
+
                                                 <tr>
                                                     <td>{{$key+1}}</td>
                                                     <td>{{!empty($account->accounts)?$account->accounts->code.' - '.$account->accounts->name:''}}</td>
                                                     <td>{{!empty($account->description)?$account->description:'-'}}</td>
                                                     <td>{{\Auth::user()->priceFormat($account->debit)}}</td>
                                                     <td>{{\Auth::user()->priceFormat($account->credit)}}</td>
-                                                    <td>
+                                                    <td >
                                                         @if($account->debit!=0)
                                                             {{\Auth::user()->priceFormat($account->debit)}}
                                                         @else
                                                             {{\Auth::user()->priceFormat($account->credit)}}
                                                         @endif
                                                     </td>
-                                                    <td>
-                                                        <div class="action-btn bg-danger ms-2">
-                                                            {{-- @dd($account->id) --}}
+                                                    {{-- <td>
+                                                        <div class="action-btn ms-2">
                                                             {!! Form::open(['method' => 'DELETE', 'route' => array('journal.destroy', $account->id),'id'=>'delete-form-'.$account->id]) !!}
-            
-                                                            <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para" data-bs-toggle="tooltip" title="{{__('Delete')}}" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$account->id}}').submit();">
+
+                                                            <a href="#" class="mx-3 bg-danger btn btn-sm align-items-center bs-pass-para" data-bs-toggle="tooltip" title="{{__('Delete')}}" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$account->id}}').submit();">
                                                                 <i class="ti ti-trash text-white"></i>
                                                             </a>
                                                             {!! Form::close() !!}
 
                                                         </div>
-                                                    </td>
+                                                    </td> --}}
                                                 </tr>
 
                                             @endforeach
@@ -111,18 +103,18 @@
 
                                             <tr>
                                                 <td colspan="4"></td>
-                                                <td class="text-end"><b>{{__('Total Credit')}}</b></td>
+                                                <td><b>{{__('Total Credit')}}</b></td>
                                                 <td>{{\Auth::user()->priceFormat($journalEntry->totalCredit())}}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="4"></td>
-                                                <td class="text-end"><b>{{__('Total Debit')}}</b></td>
+                                                <td><b>{{__('Total Debit')}}</b></td>
                                                 <td>{{\Auth::user()->priceFormat($journalEntry->totalDebit())}}</td>
                                             </tr>
                                             </tfoot>
                                         </table>
                                     </div>
-                                    <div class="font-weight-bold">
+                                    <div class="font-bold mt-2">
                                         {{__('Description')}} : <br>
                                     </div>
                                     <small>{{$journalEntry->description}}</small>

@@ -17,10 +17,10 @@ class CreateBillProductsTable extends Migration
             $table->bigIncrements('id');
             $table->integer('bill_id');
             $table->integer('product_id');
-            $table->decimal('quantity', 15, 2)->default('0.00');
-            $table->decimal('tax', 15, 2)->default('0.00');
-            $table->decimal('discount', 15, 2)->default('0.00');
-            $table->decimal('price', 15, 2)->default('0.00');
+            $table->integer('quantity');
+            $table->string('tax', '50')->nullable();
+            $table->float('discount')->default('0.00');
+            $table->decimal('price', 16, 2)->default('0.0');
             $table->text('description')->nullable();
             $table->timestamps();
         });
